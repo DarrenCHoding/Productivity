@@ -2,8 +2,16 @@
 //
 // Menambah halaman baru (misalnya timer fokus):
 //   1. Buat file static/js/views/timer.js yang mengekspor objek view:
-//        { path, title, render(container, params), badge() (opsional, angka di menu) }
-//      `params` berisi bagian setelah "?" di alamat, misalnya #/semua?kategori=3.
+//        path, title       alamat (#/path) dan judul di menu
+//        render(container, params)
+//                          gambar halaman. `params` berisi bagian setelah "?" di
+//                          alamat, misalnya #/semua?kategori=3. Boleh mengembalikan
+//                          fungsi "bersih-bersih" yang dipanggil saat pindah halaman.
+//      Opsional:
+//        badge()           angka di menu, diperbarui setiap data berubah
+//        liveStatus(update) teks di menu yang berubah terus (misalnya sisa waktu
+//                          timer); panggil update('teks') atau update('') untuk kosong
+//        init()            dijalankan sekali saat aplikasi dibuka
 //   2. Import di bawah dan tambahkan ke daftar VIEWS.
 
 import { todayISO } from './dates.js';
@@ -11,9 +19,10 @@ import { DATA_CHANGED, on } from './events.js';
 import { el } from './ui.js';
 import { allTasksView } from './views/all-tasks.js';
 import { categoriesView } from './views/categories.js';
+import { focusView } from './views/focus.js';
 import { todayView } from './views/today.js';
 
-const VIEWS = [todayView, allTasksView, categoriesView];
+const VIEWS = [todayView, allTasksView, focusView, categoriesView];
 const DEFAULT_PATH = VIEWS[0].path;
 
 const navList = document.getElementById('nav');
@@ -68,6 +77,13 @@ async function updateBadges() {
 
 let renderedDate = todayISO();
 let renderToken = 0;
+let cleanupCurrent = null;
+let baseTitle = 'Productivity';
+let liveTitle = '';
+
+function updateTitle() {
+  document.title = liveTitle ? `${liveTitle} · ${baseTitle}` : baseTitle;
+}
 
 async function renderView() {
   const view = VIEWS.find((v) => v.path === currentPath());
@@ -76,15 +92,22 @@ async function renderView() {
     return;
   }
   renderedDate = todayISO();
-  document.title = `${view.title} · Productivity`;
+  baseTitle = `${view.title} · Productivity`;
+  updateTitle();
   highlightNav();
 
   // Halaman disiapkan di luar layar dulu, lalu ditampilkan setelah datanya siap.
   // Bila pengguna sudah pindah ke halaman lain sebelum selesai, hasilnya dibuang.
   const token = ++renderToken;
   const page = el('div', { class: 'page' });
-  await view.render(page, currentParams());
-  if (token === renderToken) viewContainer.replaceChildren(page);
+  const cleanup = await view.render(page, currentParams());
+  if (token !== renderToken) {
+    if (typeof cleanup === 'function') cleanup();
+    return;
+  }
+  if (cleanupCurrent) cleanupCurrent();
+  cleanupCurrent = typeof cleanup === 'function' ? cleanup : null;
+  viewContainer.replaceChildren(page);
 }
 
 /** Muat ulang halaman yang sedang dibuka. */
@@ -110,4 +133,16 @@ setInterval(refreshIfNewDay, 60 * 1000);
 on(DATA_CHANGED, updateBadges);
 
 buildNav();
+
+for (const view of VIEWS) {
+  if (view.liveStatus) {
+    view.liveStatus((text) => {
+      badges.get(view.path).textContent = text;
+      liveTitle = text;
+      updateTitle();
+    });
+  }
+}
+// Satu fitur yang gagal disiapkan tidak boleh membuat seluruh aplikasi berhenti.
+await Promise.all(VIEWS.filter((v) => v.init).map((v) => Promise.resolve().then(v.init).catch(console.error)));
 renderView();

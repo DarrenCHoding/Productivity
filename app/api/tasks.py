@@ -1,13 +1,14 @@
 """API tugas.
 
-    GET    /api/tasks             daftar tugas  (?status=..., ?view=today)
-
-Kolom tugas yang bisa dikirim: title, done, due_date ("YYYY-MM-DD" atau null),
-priority ("normal" atau "high"), category_id (nomor kategori atau null).
+    GET    /api/tasks             daftar tugas  (?status=..., ?view=today, ?category=...)
     POST   /api/tasks             tambah tugas
     GET    /api/tasks/{id}        ambil satu tugas
     PATCH  /api/tasks/{id}        ubah sebagian isi tugas
     DELETE /api/tasks/{id}        hapus tugas
+
+Kolom tugas yang bisa dikirim: title, done, due_date ("YYYY-MM-DD" atau null),
+priority ("normal" atau "high"), category_id (nomor kategori atau null).
+Kolom yang hanya dibaca: category_name, focus_seconds (total waktu fokus).
 """
 
 import re
@@ -27,9 +28,13 @@ def to_dict(row):
     return task
 
 
-# Data tugas selalu diambil bersama nama kategorinya.
+# Data tugas selalu diambil bersama nama kategorinya dan total waktu fokusnya.
 SELECT_TASK = """
-    SELECT tasks.*, categories.name AS category_name
+    SELECT
+        tasks.*,
+        categories.name AS category_name,
+        (SELECT COALESCE(SUM(duration_seconds), 0) FROM focus_sessions
+         WHERE focus_sessions.task_id = tasks.id) AS focus_seconds
     FROM tasks
     LEFT JOIN categories ON categories.id = tasks.category_id
 """

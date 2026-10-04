@@ -59,3 +59,30 @@ export function describeDue(dueISO, today = todayISO()) {
   if (diff === 1) return { state: 'tomorrow', label: 'Besok' };
   return { state: 'future', label: formatShort(dueISO) };
 }
+
+/** Sisa waktu untuk timer: 1500000 ms -> '25:00' (atau '1:05:00' bila lebih dari sejam). */
+export function formatClock(ms) {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+/**
+ * Lama waktu yang mudah dibaca: 4500 -> '1 jam 15 menit'.
+ * Dengan { short: true }: '1j 15m'.
+ */
+export function formatDuration(seconds, { short = false } = {}) {
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 1) return short ? '<1m' : 'kurang dari 1 menit';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (short) return [h && `${h}j`, m && `${m}m`].filter(Boolean).join(' ');
+  return [h && `${h} jam`, m && `${m} menit`].filter(Boolean).join(' ');
+}
+
+/** Jam dari waktu ISO: '2026-10-04T14:30:00' -> '14.30'. */
+export function formatTime(isoDateTime) {
+  return isoDateTime.slice(11, 16).replace(':', '.');
+}

@@ -9,6 +9,11 @@ const PATHS = {
   calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
   flag: '<path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/>',
   tag: '<path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.5"/>',
+  timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2.5h5"/>',
+  play: '<path d="M7 4.5l12 7.5-12 7.5V4.5z" fill="currentColor"/>',
+  pause: '<path d="M8 5v14M16 5v14"/>',
+  skip: '<path d="M5 5l10 7-10 7V5z"/><path d="M19 5v14"/>',
+  stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
   settings: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
 };
 

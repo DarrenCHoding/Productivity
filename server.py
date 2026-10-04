@@ -28,7 +28,10 @@ def main():
     parser.add_argument("--no-browser", action="store_true", help="jangan buka browser otomatis")
     args = parser.parse_args()
 
-    init_db()
+    backup = init_db()
+    if backup:
+        print("Database diperbarui untuk fitur baru. Cadangan data lama disimpan di:")
+        print(f"  {backup}")
 
     try:
         server = make_server(args.host, args.port)

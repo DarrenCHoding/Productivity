@@ -10,6 +10,9 @@ Aplikasi productivity pribadi berbasis web, untuk dipakai sendiri di komputer An
 - **Kategori** (misalnya Kerja, Pribadi, Kuliah) yang bisa dipakai untuk memfilter tugas.
 - Semua data tersimpan permanen di satu file database di komputer Anda.
 
+**Tahap 2** (sedang dikerjakan, satu fitur per langkah)
+- **Timer fokus** (pomodoro): 25 menit fokus, 5 menit istirahat. Durasinya bisa diubah, timer bisa dikaitkan ke satu tugas, dan total waktu fokus tiap tugas tercatat.
+
 ---
 
 ## 1. Persiapan (cukup sekali)
@@ -61,6 +64,17 @@ Selama aplikasi dipakai, **jendela terminal harus tetap terbuka**. Untuk menghen
 - **Kategori:** buat, ganti nama, dan hapus kategori di menu **Kategori**. Menghapus kategori **tidak** menghapus tugasnya; tugas itu hanya menjadi "tanpa kategori".
 - **Filter:** klik nama kategori di deretan tombol di atas daftar tugas.
 
+### Timer fokus
+
+- Buka menu **Fokus**, lalu tekan **Mulai**. Timer tetap berjalan walaupun Anda pindah halaman atau memuat ulang browser. Sisa waktunya terlihat di menu samping dan di judul tab browser.
+- **Jeda** untuk berhenti sebentar dan **Lanjutkan** untuk meneruskan. **Lewati** pindah ke fase berikutnya (fokus ↔ istirahat). **Berhenti** mengembalikan timer ke awal.
+- **Mengaitkan ke tugas:** pilih tugas di "Sedang mengerjakan", atau buka tugas (klik judulnya) lalu tekan **Mulai fokus**. Selama timer berjalan, tugas tidak bisa diganti; jeda dulu kalau ingin menggantinya.
+- Saat waktu fokus habis, terdengar bunyi dan sesi itu dicatat. Fase istirahat lalu disiapkan dan menunggu Anda menekan **Mulai**.
+- Kalau Anda menekan **Berhenti** atau **Lewati** di tengah sesi fokus, waktu yang sudah berjalan tetap dicatat, asalkan sudah lebih dari 1 menit.
+- **Total waktu fokus** tiap tugas tampil di daftar tugas (ikon jam) dan di jendela edit tugas. Riwayat sesi hari ini ada di bawah timer; sesi yang salah bisa dihapus dari sana.
+- **Mengubah durasi:** buka **Atur durasi** di bawah halaman Fokus. Kalau timer sedang berjalan, durasi baru berlaku mulai sesi berikutnya.
+- **Notifikasi:** supaya tetap diberi tahu saat bekerja di jendela lain, klik **Aktifkan notifikasi** di bawah halaman Fokus. Fitur ini hanya tersedia saat aplikasi dibuka lewat `localhost`.
+
 ## 5. Di mana data saya disimpan?
 
 Semua data ada di **satu file**:
@@ -76,6 +90,16 @@ data/productivity.db
 - **Memulihkan backup:** hentikan aplikasi, taruh salinan backup di `data/productivity.db`, lalu jalankan lagi.
 - **Mulai dari nol:** hentikan aplikasi, lalu hapus atau pindahkan file `data/productivity.db`. File baru yang kosong dibuat otomatis saat aplikasi dijalankan lagi.
 - File ini sengaja **tidak ikut masuk Git**, jadi data pribadi Anda tidak akan ter-upload ke GitHub.
+
+### Cadangan otomatis saat ada fitur baru
+
+Kalau versi baru aplikasi perlu mengubah struktur database, aplikasi **otomatis membuat cadangan** sebelum mengubah apa pun. Cadangan disimpan di:
+
+```
+data/backups/productivity-<tanggal-jam>-sebelum-v<nomor>.db
+```
+
+Terminal juga menampilkan lokasinya saat cadangan dibuat. Kalau ada masalah setelah pembaruan, hentikan aplikasi lalu salin file cadangan itu menjadi `data/productivity.db`. Cadangan lama yang sudah tidak diperlukan boleh dihapus.
 
 ## 6. Pilihan tambahan
 
@@ -127,6 +151,8 @@ app/
   api/
     tasks.py              API tugas
     categories.py         API kategori
+    focus.py              API riwayat sesi fokus
+    settings.py           API pengaturan (misalnya durasi timer)
     system.py             /api/health
 static/
   index.html              kerangka halaman
@@ -134,16 +160,18 @@ static/
   js/
     app.js                daftar halaman & navigasi
     api.js                semua pemanggilan ke server
+    focus-timer.js        mesin timer fokus (tetap berjalan di halaman mana pun)
     dates.js, ui.js, icons.js, events.js   fungsi bantu
     components/           bagian tampilan yang dipakai ulang (baris tugas, form, dll.)
-    views/                satu file per halaman (today.js, all-tasks.js, categories.js)
+    views/                satu file per halaman (today.js, all-tasks.js, focus.js, categories.js)
 tests/                    uji otomatis
 data/                     file database (tidak masuk Git)
 ```
 
 ### Menambah fitur baru (misalnya timer fokus)
 
-1. **Database:** tambahkan satu entri baru di **akhir** daftar `MIGRATIONS` di `app/db.py`. Jangan mengubah entri lama. Migrasi baru dijalankan otomatis saat server dinyalakan, dan data lama tetap aman.
+1. **Database:** tambahkan satu entri baru di **akhir** daftar `MIGRATIONS` di `app/db.py`. Jangan mengubah entri lama. Migrasi baru dijalankan otomatis saat server dinyalakan (setelah cadangan dibuat), dan data lama tetap aman.
+   Pengaturan sederhana tidak butuh tabel baru: cukup tambahkan entri di `SETTINGS` (`app/api/settings.py`).
 2. **API:** buat `app/api/timer.py` yang memakai `@route(...)`, lalu tambahkan namanya di `app/api/__init__.py`.
 3. **Tampilan:** tambahkan fungsi pemanggil di `static/js/api.js`, buat `static/js/views/timer.js`, lalu daftarkan di `VIEWS` pada `static/js/app.js`. Menu samping akan bertambah otomatis.
 
@@ -156,6 +184,10 @@ data/                     file database (tidak masuk Git)
 | GET / PATCH / DELETE | `/api/tasks/<id>` | Ambil / ubah sebagian / hapus tugas (PATCH juga menerima `done`) |
 | GET / POST | `/api/categories` | Daftar kategori (dengan jumlah tugas) / buat kategori: `name` |
 | PATCH / DELETE | `/api/categories/<id>` | Ganti nama / hapus kategori |
+| GET / PATCH | `/api/settings` | Baca / ubah pengaturan (`focus_work_minutes`, `focus_break_minutes`) |
+| GET | `/api/focus/sessions` | Riwayat sesi fokus (`?date=YYYY-MM-DD` untuk satu hari) |
+| POST | `/api/focus/sessions` | Catat sesi: `duration_seconds`, `task_id` (opsional), `completed` |
+| DELETE | `/api/focus/sessions/<id>` | Hapus satu sesi dari riwayat |
 
 ### Menjalankan uji otomatis
 

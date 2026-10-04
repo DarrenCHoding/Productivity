@@ -1,7 +1,7 @@
 // Satu baris tugas di daftar, beserta aksinya (selesai, edit, hapus).
 
 import { api } from '../api.js';
-import { describeDue, formatLong } from '../dates.js';
+import { describeDue, formatDuration, formatLong } from '../dates.js';
 import { icon } from '../icons.js';
 import { attempt, el, toast } from '../ui.js';
 import { openTaskDialog } from './task-dialog.js';
@@ -33,7 +33,8 @@ export function taskItem(task, { onChanged }) {
   const due = task.due_date ? describeDue(task.due_date) : null;
   const overdue = !task.done && due?.state === 'overdue';
   const important = task.priority === 'high';
-  const hasMeta = due || important || task.category_name;
+  const focused = task.focus_seconds >= 60;
+  const hasMeta = due || important || task.category_name || focused;
 
   const classes = ['task'];
   if (task.done) classes.push('done');
@@ -58,6 +59,8 @@ export function taskItem(task, { onChanged }) {
           title: `Jatuh tempo: ${formatLong(task.due_date)}`,
         }, icon('calendar', 14), due.label),
         task.category_name && el('span', { class: 'chip chip-category' }, icon('tag', 14), task.category_name),
+        focused && el('span', { class: 'chip chip-focus', title: `Total waktu fokus: ${formatDuration(task.focus_seconds)}` },
+          icon('timer', 14), formatDuration(task.focus_seconds, { short: true })),
       ),
     ),
     el('div', { class: 'task-actions' },

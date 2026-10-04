@@ -25,13 +25,14 @@ class MigrationTest(unittest.TestCase):
             conn.close()
 
     def test_creates_folder_and_runs_all_migrations(self):
-        db.init_db()
+        backup = db.init_db()
         self.assertTrue(self.path.exists())
         self.assertEqual(self.version(), len(db.MIGRATIONS))
+        self.assertIsNone(backup)  # database baru: tidak perlu cadangan
 
     def test_init_twice_is_safe(self):
         db.init_db()
-        db.init_db()
+        self.assertIsNone(db.init_db())  # tidak ada migrasi baru: tidak perlu cadangan
         self.assertEqual(self.version(), len(db.MIGRATIONS))
 
     def test_upgrade_keeps_existing_data(self):
@@ -51,3 +52,38 @@ class MigrationTest(unittest.TestCase):
         self.assertEqual(row["title"], "Lama")
         self.assertEqual(row["priority"], "normal")
         self.assertIsNone(row["due_date"])
+
+    def test_backup_before_migrating_existing_data(self):
+        # Database versi 3 (akhir tahap 1) yang sudah berisi data.
+        self.path.parent.mkdir(parents=True)
+        conn = sqlite3.connect(self.path)
+        for version, script in enumerate(db.MIGRATIONS[:3], start=1):
+            conn.executescript(script + f"PRAGMA user_version = {version};")
+        conn.execute("INSERT INTO categories (name, created_at) VALUES ('Kerja', '2026-01-01T00:00:00')")
+        conn.execute(
+            "INSERT INTO tasks (title, created_at, updated_at, due_date, priority, category_id)"
+            " VALUES ('Laporan', '2026-01-01T00:00:00', '2026-01-01T00:00:00', '2026-02-01', 'high', 1)"
+        )
+        conn.commit()
+        conn.close()
+
+        backup = db.init_db()
+
+        # Cadangan berisi data lama, dengan versi lama, dan tidak tersentuh migrasi.
+        self.assertIsNotNone(backup)
+        self.assertEqual(backup.parent, self.path.parent / "backups")
+        old = sqlite3.connect(backup)
+        try:
+            self.assertEqual(old.execute("PRAGMA user_version").fetchone()[0], 3)
+            self.assertEqual(old.execute("SELECT title FROM tasks").fetchall(), [("Laporan",)])
+        finally:
+            old.close()
+
+        # Database utama sudah versi terbaru dan datanya utuh.
+        self.assertEqual(self.version(), len(db.MIGRATIONS))
+        with db.connection() as conn:
+            row = conn.execute("SELECT * FROM tasks").fetchone()
+        self.assertEqual(
+            (row["title"], row["due_date"], row["priority"], row["category_id"]),
+            ("Laporan", "2026-02-01", "high", 1),
+        )

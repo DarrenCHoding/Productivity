@@ -6,6 +6,9 @@ Struktur tabel dikelola lewat daftar MIGRATIONS di bawah. Setiap kali fitur
 baru butuh tabel/kolom baru, TAMBAHKAN satu entri baru di akhir daftar
 (jangan ubah entri lama). Saat server dijalankan, migrasi yang belum pernah
 dijalankan akan dijalankan otomatis, dan data lama tetap aman.
+
+Sebelum migrasi dijalankan pada database yang sudah berisi, salinan cadangan
+file database dibuat dulu di folder data/backups/.
 """
 
 import os
@@ -52,6 +55,26 @@ MIGRATIONS = [
         REFERENCES categories (id) ON DELETE SET NULL;
     CREATE INDEX idx_tasks_category ON tasks (category_id);
     """,
+    # 4: timer fokus. Setiap sesi fokus dicatat; total waktu fokus per tugas
+    #    dihitung dari sini. Bila tugas dihapus, riwayat sesinya tetap ada.
+    #    Tabel settings menyimpan pengaturan aplikasi (misalnya durasi timer).
+    """
+    CREATE TABLE focus_sessions (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id          INTEGER REFERENCES tasks (id) ON DELETE SET NULL,
+        started_at       TEXT    NOT NULL,
+        ended_at         TEXT    NOT NULL,
+        duration_seconds INTEGER NOT NULL CHECK (duration_seconds > 0),
+        completed        INTEGER NOT NULL DEFAULT 1
+    );
+    CREATE INDEX idx_focus_sessions_task ON focus_sessions (task_id);
+    CREATE INDEX idx_focus_sessions_ended ON focus_sessions (ended_at);
+
+    CREATE TABLE settings (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );
+    """,
 ]
 
 
@@ -92,12 +115,38 @@ def connection():
         conn.close()
 
 
+def backup_database(label):
+    """Salin file database ke data/backups/. Hasil: lokasi file cadangan.
+
+    Memakai fitur backup bawaan SQLite, sehingga salinannya selalu utuh.
+    """
+    backup_dir = _db_path.parent / "backups"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    target = backup_dir / f"{_db_path.stem}-{stamp}-{label}.db"
+    source = sqlite3.connect(_db_path)
+    copy = sqlite3.connect(target)
+    try:
+        source.backup(copy)
+    finally:
+        copy.close()
+        source.close()
+    return target
+
+
 def init_db():
-    """Buat folder & file database bila belum ada, lalu jalankan migrasi yang tertunda."""
+    """Buat folder & file database bila belum ada, lalu jalankan migrasi yang tertunda.
+
+    Hasil: lokasi file cadangan bila migrasi dijalankan pada database lama,
+    atau None bila tidak ada yang perlu dicadangkan.
+    """
     _db_path.parent.mkdir(parents=True, exist_ok=True)
+    backup = None
     conn = connect()
     try:
         current = conn.execute("PRAGMA user_version").fetchone()[0]
+        if 0 < current < len(MIGRATIONS):
+            backup = backup_database(f"sebelum-v{len(MIGRATIONS)}")
         for version, script in enumerate(MIGRATIONS, start=1):
             if version <= current:
                 continue
@@ -107,3 +156,4 @@ def init_db():
             )
     finally:
         conn.close()
+    return backup

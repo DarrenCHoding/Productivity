@@ -46,6 +46,15 @@ export const api = {
   createCategory: (name) => request('POST', '/api/categories', { name }),
   renameCategory: (id, name) => request('PATCH', `/api/categories/${id}`, { name }),
   deleteCategory: (id) => request('DELETE', `/api/categories/${id}`),
+
+  // Pengaturan
+  getSettings: () => request('GET', '/api/settings'),
+  updateSettings: (data) => request('PATCH', '/api/settings', data),
+
+  // Timer fokus
+  listFocusSessions: (params = {}) => request('GET', `/api/focus/sessions${query(params)}`),
+  logFocusSession: (data) => request('POST', '/api/focus/sessions', data),
+  deleteFocusSession: (id) => request('DELETE', `/api/focus/sessions/${id}`),
 };
 
 export { request, query };

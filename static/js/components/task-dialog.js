@@ -1,6 +1,8 @@
 // Jendela untuk mengedit tugas.
 
 import { api } from '../api.js';
+import { formatDuration } from '../dates.js';
+import { icon } from '../icons.js';
 import { el, toast } from '../ui.js';
 import { categorySelect, dueDateInput, priorityToggle } from './task-fields.js';
 
@@ -67,6 +69,18 @@ export async function openTaskDialog(task) {
           el('div', { class: 'field' }, el('span', {}, 'Prioritas'), priority),
         ),
         el('label', { class: 'field' }, el('span', {}, 'Kategori'), category),
+        el('div', { class: 'dialog-focus' },
+          el('span', {}, task.focus_seconds >= 60
+            ? `Total fokus: ${formatDuration(task.focus_seconds)}`
+            : 'Belum ada waktu fokus'),
+          !task.done && el('button', {
+            class: 'btn', type: 'button',
+            onclick: () => {
+              dialog.close();
+              location.hash = `#/fokus?tugas=${task.id}`;
+            },
+          }, icon('timer', 18), 'Mulai fokus'),
+        ),
         errorBox,
         el('div', { class: 'dialog-actions' },
           el('button', { class: 'btn danger', type: 'button', onclick: remove }, 'Hapus'),
