@@ -174,6 +174,161 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.error { background: var(--danger); color: #fff; }
 
+/* ===== Ikon ===== */
+.icon { display: inline-flex; line-height: 0; }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
+.icon-btn.danger:hover { color: var(--danger); background: var(--danger-soft); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); }
+
+/* ===== Tambah tugas ===== */
+.quick-add {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px;
+  margin-bottom: 24px;
+}
+.quick-add-row { display: flex; gap: 8px; }
+.quick-add-row .input { flex: 1; border-color: transparent; background: var(--surface-2); }
+.quick-add-row .input:focus { background: var(--surface); border-color: var(--border); }
+
+/* ===== Daftar tugas ===== */
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 6px;
+  border-top: 1px solid var(--border);
+}
+.task:first-child { border-top: none; }
+
+.check {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  color: transparent;
+}
+.check .icon {
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--text-3);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.check:hover .icon { border-color: var(--accent); color: var(--accent); }
+.check:focus-visible { outline: 2px solid var(--accent); border-radius: 8px; }
+.task.done .check .icon { background: var(--ok); border-color: var(--ok); color: #fff; }
+
+.task-body {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 4px;
+  cursor: pointer;
+}
+.task-title { overflow-wrap: anywhere; }
+.task.done .task-title { color: var(--text-3); text-decoration: line-through; }
+
+.task-actions { display: flex; flex: none; }
+
+/* Di perangkat dengan mouse, tombol aksi baru muncul saat kursor di atas tugas.
+   Di layar sentuh, tombol selalu terlihat. */
+@media (hover: hover) {
+  .task-actions { opacity: 0; transition: opacity .15s; }
+  .task:hover .task-actions, .task:focus-within .task-actions { opacity: 1; }
+}
+
+/* ===== Bagian daftar ===== */
+.task-section { margin-top: 24px; }
+.task-section:first-child { margin-top: 0; }
+
+.section-title, .section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.section-count {
+  font-weight: 500;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.section-toggle {
+  min-height: var(--tap);
+  border: none;
+  background: none;
+  padding: 0 8px 0 0;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+.section-toggle .icon { transition: transform .15s; }
+.section-toggle:focus-visible { outline: 2px solid var(--accent); border-radius: 6px; }
+.done-section .task-list { display: none; }
+.done-section.open .task-list { display: block; }
+.done-section.open .section-toggle .icon { transform: rotate(90deg); }
+
+/* ===== Jendela (dialog) ===== */
+.dialog {
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  width: min(480px, calc(100vw - 32px));
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
+}
+.dialog::backdrop { background: rgba(15, 20, 30, .45); }
+.dialog form { padding: 24px; display: grid; gap: 16px; }
+.dialog h2 { margin: 0; font-size: 20px; }
+
+.field { display: grid; gap: 6px; }
+.field > span { font-size: 14px; font-weight: 500; color: var(--text-2); }
+
+.form-error { margin: 0; color: var(--danger); font-size: 14px; }
+.form-error:empty { display: none; }
+
+.dialog-actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.spacer { flex: 1; }
+
 /* ===== Layar kecil (tablet tegak / ponsel) ===== */
 @media (max-width: 760px) {
   .layout { grid-template-columns: 1fr; }

@@ -34,6 +34,12 @@ function query(params) {
 
 export const api = {
   health: () => request('GET', '/api/health'),
+
+  // Tugas
+  listTasks: (params = {}) => request('GET', `/api/tasks${query(params)}`),
+  createTask: (data) => request('POST', '/api/tasks', data),
+  updateTask: (id, data) => request('PATCH', `/api/tasks/${id}`, data),
+  deleteTask: (id) => request('DELETE', `/api/tasks/${id}`),
 };
 
 export { request, query };

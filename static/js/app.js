@@ -6,9 +6,10 @@
 //   2. Import di bawah dan tambahkan ke daftar VIEWS.
 
 import { el } from './ui.js';
+import { allTasksView } from './views/all-tasks.js';
 import { todayView } from './views/today.js';
 
-const VIEWS = [todayView];
+const VIEWS = [todayView, allTasksView];
 const DEFAULT_PATH = VIEWS[0].path;
 
 const navList = document.getElementById('nav');

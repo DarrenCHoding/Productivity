@@ -22,7 +22,7 @@ class ApiTestCase(unittest.TestCase):
         db.init_db()
         self.server = make_server("127.0.0.1", 0)
         self.base_url = f"http://127.0.0.1:{self.server.server_address[1]}"
-        self._thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self._thread = threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
         self._thread.start()
 
     def tearDown(self):

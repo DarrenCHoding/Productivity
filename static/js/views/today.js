@@ -14,7 +14,7 @@ export const todayView = {
           weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
         })),
       ),
-      el('p', { class: 'empty' }, 'Belum ada tugas. Fitur tugas akan segera hadir.'),
+      el('p', { class: 'empty' }, 'Tampilan ini akan aktif setelah fitur deadline dibuat. Untuk sementara, buka “Semua tugas”.'),
     );
   },
 };

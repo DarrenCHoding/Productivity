@@ -10,6 +10,8 @@ dijalankan akan dijalankan otomatis, dan data lama tetap aman.
 
 import os
 import sqlite3
+from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +22,24 @@ _db_path = Path(os.environ.get("PRODUCTIVITY_DB", DEFAULT_DB_PATH))
 
 
 # Daftar perubahan struktur database, berurutan. Nomor versi = posisi di daftar.
-MIGRATIONS = []
+MIGRATIONS = [
+    # 1: tabel tugas
+    """
+    CREATE TABLE tasks (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        title        TEXT    NOT NULL,
+        done         INTEGER NOT NULL DEFAULT 0,
+        created_at   TEXT    NOT NULL,
+        updated_at   TEXT    NOT NULL,
+        completed_at TEXT
+    );
+    """,
+]
+
+
+def now():
+    """Waktu lokal saat ini, contoh: '2026-10-04T14:30:00'."""
+    return datetime.now().isoformat(timespec="seconds")
 
 
 def set_db_path(path):
@@ -38,6 +57,21 @@ def connect():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+@contextmanager
+def connection():
+    """Pakai dengan `with connection() as conn:`.
+
+    Perubahan disimpan otomatis bila tidak ada error (dibatalkan bila ada),
+    lalu koneksi ditutup.
+    """
+    conn = connect()
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def init_db():
