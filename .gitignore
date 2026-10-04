@@ -1,0 +1,11 @@
+# File database (data pribadi Anda) tidak disimpan di Git
+data/*
+!data/.gitkeep
+
+# File sementara Python
+__pycache__/
+*.pyc
+
+# File sistem
+.DS_Store
+Thumbs.db
