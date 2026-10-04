@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+import threading
 import time
 from datetime import date, timedelta
 
@@ -186,3 +187,11 @@ class DailyBackupTest(ApiTestCase):
         path = backup.ensure_daily_backup(date(2026, 10, 4))
         info = backup.inspect_backup(path)
         self.assertEqual(info["counts"]["tasks"], 1)
+
+    def test_background_thread_makes_backup_when_server_starts(self):
+        created = []
+        done = threading.Event()
+        backup.start_daily_backups(on_created=lambda path: (created.append(path), done.set()))
+        self.assertTrue(done.wait(5), "Cadangan harian tidak dibuat saat server dinyalakan")
+        self.assertEqual(created[0], backup.daily_backup_path(date.today()))
+        self.assertTrue(created[0].exists())

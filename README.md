@@ -12,9 +12,14 @@ Aplikasi productivity pribadi berbasis web, untuk dipakai sendiri di komputer An
 
 **Tahap 2**
 - **Timer fokus** (pomodoro): 25 menit fokus, 5 menit istirahat. Durasinya bisa diubah, timer bisa dikaitkan ke satu tugas, dan total waktu fokus tiap tugas tercatat.
+- *Belum dibuat:* tugas berulang, habit tracker, catatan cepat, pencarian & filter.
 
-**Tahap 3** (sedang dikerjakan, satu fitur per langkah)
+**Tahap 3**
 - **Ekspor & cadangan:** unduh seluruh data ke satu file, pulihkan dari file itu, dan cadangan otomatis setiap hari (7 hari terakhir disimpan).
+- *Belum dibuat:* pilihan tema & shortcut keyboard, kalender, statistik mingguan, pengingat, akses dari perangkat lain dengan PIN & PWA.
+
+**Tahap 4** (sedang dikerjakan, satu fitur per langkah)
+- **Tes otomatis** untuk fungsi-fungsi penting, termasuk mesin timer di browser. Lihat bagian [Tes otomatis](#tes-otomatis).
 
 ---
 
@@ -188,7 +193,8 @@ static/
     dates.js, ui.js, icons.js, events.js   fungsi bantu
     components/           bagian tampilan yang dipakai ulang (baris tugas, form, dll.)
     views/                satu file per halaman (today.js, all-tasks.js, focus.js, categories.js, settings.js)
-tests/                    uji otomatis
+tests/                    tes otomatis Python (python3 -m unittest)
+  js/                     tes kode tampilan (JavaScript), dijalankan otomatis bila Node.js ada
 data/                     file database (tidak masuk Git)
 ```
 
@@ -217,10 +223,37 @@ data/                     file database (tidak masuk Git)
 | GET | `/api/backup/automatic` | Daftar cadangan di `data/backups/` |
 | POST | `/api/backup/automatic/restore` | Pulihkan dari salah satu cadangan itu: `name` |
 
-### Menjalankan uji otomatis
+### Tes otomatis
+
+Tes otomatis memeriksa bahwa fungsi-fungsi penting aplikasi masih bekerja dengan benar. Jalankan di folder aplikasi dengan **satu perintah**:
 
 ```
 python3 -m unittest
 ```
 
-Uji memakai database sementara, jadi data asli Anda tidak tersentuh.
+(Di Windows: `python -m unittest`.)
+
+**Membaca hasilnya:**
+- Baris terakhir `OK` berarti semua tes lolos.
+- `OK (skipped=1)` juga berarti lolos; tes JavaScript dilewati karena Node.js belum terpasang (lihat di bawah).
+- `FAILED (failures=…)` berarti ada yang rusak. Di atasnya tertulis nama tes yang gagal dan alasannya.
+
+Tes memakai **database sementara**, jadi data asli Anda tidak tersentuh, dan aplikasi boleh tetap berjalan saat tes dijalankan.
+
+**Yang diuji:**
+
+| Bagian | File tes | Contoh yang diperiksa |
+|---|---|---|
+| Tugas | `tests/test_tasks.py` | tambah/edit/hapus, selesai & dikembalikan, deadline, prioritas, urutan, halaman "Hari ini" |
+| Kategori | `tests/test_categories.py` | buat/ganti nama/hapus, filter, menghapus kategori tidak menghapus tugas |
+| Timer fokus (server) | `tests/test_focus.py` | durasi, pencatatan sesi, total fokus per tugas |
+| Timer fokus (browser) | `tests/js/focus-timer.test.mjs` | hitung mundur, jeda, berhenti, lewati, tetap jalan setelah halaman dimuat ulang, selesai saat aplikasi tertutup, dua tab tidak mencatat ganda |
+| Tanggal di tampilan | `tests/js/dates.test.mjs` | "Terlambat 2 hari", "Besok", akhir bulan/tahun, tahun kabisat, pergantian jam musim panas |
+| Cadangan & pemulihan | `tests/test_backup.py` | unduh lalu pulihkan, file salah/rusak ditolak, cadangan harian (7 terakhir) |
+| Database | `tests/test_db.py` | pembaruan struktur tanpa kehilangan data, cadangan sebelum pembaruan |
+| Data permanen | `tests/test_persistence.py` | data tetap ada setelah server dimatikan paksa lalu dinyalakan lagi |
+| Server | `tests/test_system.py` | jenis file benar, file di luar folder `static/` tidak bisa dibuka, batas ukuran data |
+
+**Tes JavaScript (opsional):** tes bagian browser (timer & tanggal) butuh [Node.js](https://nodejs.org/) versi 22 atau lebih baru. Node.js **tidak** dibutuhkan untuk menjalankan aplikasi. Kalau belum terpasang, tes ini dilewati dan tes lainnya tetap berjalan. Tes ini dijalankan dua kali dengan zona waktu berbeda, supaya perhitungan tanggal terbukti benar di mana pun. Untuk menjalankannya sendiri: `node --test "tests/js/*.test.mjs"`.
+
+**Aturan saat menambah fitur:** setiap fitur baru disertai tes baru, dan `python3 -m unittest` harus `OK` sebelum perubahan di-commit.
