@@ -75,6 +75,16 @@ MIGRATIONS = [
         value TEXT NOT NULL
     );
     """,
+    # 5: tugas berulang. repeat: daily / weekly / monthly (NULL = tidak berulang).
+    #    repeat_day: tanggal patokan untuk bulanan (misalnya 31).
+    #    next_task_id: tugas jadwal berikutnya yang dibuat saat tugas ini selesai.
+    """
+    ALTER TABLE tasks ADD COLUMN repeat TEXT
+        CHECK (repeat IN ('daily', 'weekly', 'monthly'));
+    ALTER TABLE tasks ADD COLUMN repeat_day INTEGER;
+    ALTER TABLE tasks ADD COLUMN next_task_id INTEGER
+        REFERENCES tasks (id) ON DELETE SET NULL;
+    """,
 ]
 
 

@@ -12,7 +12,8 @@ Aplikasi productivity pribadi berbasis web, untuk dipakai sendiri di komputer An
 
 **Tahap 2**
 - **Timer fokus** (pomodoro): 25 menit fokus, 5 menit istirahat. Durasinya bisa diubah, timer bisa dikaitkan ke satu tugas, dan total waktu fokus tiap tugas tercatat.
-- *Belum dibuat:* tugas berulang, habit tracker, catatan cepat, pencarian & filter.
+- **Tugas berulang**: harian, mingguan, atau bulanan. Saat ditandai selesai, tugas untuk jadwal berikutnya muncul otomatis.
+- *Belum dibuat:* habit tracker, catatan cepat, pencarian & filter.
 
 **Tahap 3**
 - **Ekspor & cadangan:** unduh seluruh data ke satu file, pulihkan dari file itu, dan cadangan otomatis setiap hari (7 hari terakhir disimpan).
@@ -75,6 +76,16 @@ Selama aplikasi dipakai, **jendela terminal harus tetap terbuka**. Untuk menghen
 - **Menghapus:** ikon tempat sampah, atau tombol **Hapus** di jendela edit.
 - **Kategori:** buat, ganti nama, dan hapus kategori di menu **Kategori**. Menghapus kategori **tidak** menghapus tugasnya; tugas itu hanya menjadi "tanpa kategori".
 - **Filter:** klik nama kategori di deretan tombol di atas daftar tugas.
+
+### Tugas berulang
+
+- Buka tugas (klik judulnya), lalu pilih **Ulangi**: *Setiap hari*, *Setiap minggu*, atau *Setiap bulan*. Tugas berulang ditandai ikon panah melingkar berwarna hijau.
+- Saat tugas berulang ditandai **selesai**, tugas yang sama untuk jadwal berikutnya langsung dibuat, dengan judul, prioritas, dan kategori yang sama. Pesan di bawah layar memberi tahu tanggalnya.
+- Jadwal berikutnya dihitung dari **tanggal deadline**, dan selalu jatuh di tanggal yang belum lewat. Contoh: tugas harian yang terlambat 3 hari lalu diselesaikan hari ini muncul lagi **besok**, jadi tugas terlambat tidak menumpuk.
+- Tugas bulanan tanggal 31 tetap kembali ke tanggal 31. Di bulan yang lebih pendek, tugas jatuh di akhir bulan.
+- Tugas berulang tanpa deadline dihitung dari hari ini.
+- **Tidak sengaja mencentang?** Kembalikan tugas itu menjadi belum selesai. Jadwal berikutnya yang tadi dibuat otomatis dihapus lagi, asalkan belum Anda ubah.
+- Untuk menghentikan pengulangan, buka tugasnya dan pilih **Tidak berulang**.
 
 ### Timer fokus
 
@@ -318,7 +329,7 @@ data/                     file database (tidak masuk Git)
 | Metode | Alamat | Keterangan |
 |---|---|---|
 | GET | `/api/tasks` | Daftar tugas. Filter: `?status=open\|done\|all`, `?view=today&today=YYYY-MM-DD`, `?category=<id>\|none` |
-| POST | `/api/tasks` | Tambah tugas: `title`, `due_date`, `priority` (`normal`/`high`), `category_id` |
+| POST | `/api/tasks` | Tambah tugas: `title`, `due_date`, `priority` (`normal`/`high`), `category_id`, `repeat` (`daily`/`weekly`/`monthly`/`null`) |
 | GET / PATCH / DELETE | `/api/tasks/<id>` | Ambil / ubah sebagian / hapus tugas (PATCH juga menerima `done`) |
 | GET / POST | `/api/categories` | Daftar kategori (dengan jumlah tugas) / buat kategori: `name` |
 | PATCH / DELETE | `/api/categories/<id>` | Ganti nama / hapus kategori |
@@ -355,6 +366,7 @@ Tes memakai **database sementara**, jadi data asli Anda tidak tersentuh, dan apl
 | Bagian | File tes | Contoh yang diperiksa |
 |---|---|---|
 | Tugas | `tests/test_tasks.py` | tambah/edit/hapus, selesai & dikembalikan, deadline, prioritas, urutan, halaman "Hari ini" |
+| Tugas berulang | `tests/test_recurrence.py`, `tests/test_recurring_tasks.py` | jadwal berikutnya (terlambat, lebih awal, akhir bulan, kabisat), batal centang tanpa duplikat |
 | Kategori | `tests/test_categories.py` | buat/ganti nama/hapus, filter, menghapus kategori tidak menghapus tugas |
 | Timer fokus (server) | `tests/test_focus.py` | durasi, pencatatan sesi, total fokus per tugas |
 | Timer fokus (browser) | `tests/js/focus-timer.test.mjs` | hitung mundur, jeda, berhenti, lewati, tetap jalan setelah halaman dimuat ulang, selesai saat aplikasi tertutup, dua tab tidak mencatat ganda |

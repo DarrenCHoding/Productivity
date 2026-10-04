@@ -4,7 +4,7 @@ import { api } from '../api.js';
 import { formatDuration } from '../dates.js';
 import { icon } from '../icons.js';
 import { el, toast } from '../ui.js';
-import { categorySelect, dueDateInput, priorityToggle } from './task-fields.js';
+import { categorySelect, dueDateInput, priorityToggle, repeatSelect } from './task-fields.js';
 
 /**
  * Buka jendela edit. Hasil: Promise yang bernilai true bila tugas diubah atau dihapus.
@@ -28,6 +28,7 @@ export async function openTaskDialog(task) {
     const dueInput = dueDateInput(task.due_date);
     const priority = priorityToggle(task.priority);
     const category = categorySelect(categories, task.category_id);
+    const repeat = repeatSelect(task.repeat);
     const errorBox = el('p', { class: 'form-error', role: 'alert' });
 
     async function save(event) {
@@ -39,6 +40,7 @@ export async function openTaskDialog(task) {
           due_date: dueInput.value || null,
           priority: priority.priority,
           category_id: category.categoryId,
+          repeat: repeat.repeat,
         });
         changed = true;
         toast('Perubahan disimpan');
@@ -68,7 +70,12 @@ export async function openTaskDialog(task) {
           el('label', { class: 'field' }, el('span', {}, 'Tenggat (opsional)'), dueInput),
           el('div', { class: 'field' }, el('span', {}, 'Prioritas'), priority),
         ),
-        el('label', { class: 'field' }, el('span', {}, 'Kategori'), category),
+        el('div', { class: 'field-row even' },
+          el('label', { class: 'field' }, el('span', {}, 'Kategori'), category),
+          el('label', { class: 'field' }, el('span', {}, 'Ulangi'), repeat),
+        ),
+        el('p', { class: 'field-hint repeat-hint' },
+          'Tugas berulang: saat ditandai selesai, tugas untuk jadwal berikutnya dibuat otomatis.'),
         el('div', { class: 'dialog-focus' },
           el('span', {}, task.focus_seconds >= 60
             ? `Total fokus: ${formatDuration(task.focus_seconds)}`

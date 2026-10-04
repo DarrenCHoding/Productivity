@@ -7,14 +7,21 @@
     DELETE /api/tasks/{id}        hapus tugas
 
 Kolom tugas yang bisa dikirim: title, done, due_date ("YYYY-MM-DD" atau null),
-priority ("normal" atau "high"), category_id (nomor kategori atau null).
-Kolom yang hanya dibaca: category_name, focus_seconds (total waktu fokus).
+priority ("normal" atau "high"), category_id (nomor kategori atau null),
+repeat ("daily", "weekly", "monthly", atau null).
+Kolom yang hanya dibaca: category_name, focus_seconds (total waktu fokus),
+next_task_id (jadwal berikutnya dari tugas berulang yang sudah selesai).
+
+Tugas berulang: saat ditandai selesai, tugas untuk jadwal berikutnya dibuat
+otomatis dan ikut dikirim di jawaban sebagai "next_task". Bila tanda selesai
+dibatalkan, tugas berikutnya itu dihapus lagi (asal belum diubah).
 """
 
 import re
 from datetime import date
 
 from app.db import connection, now
+from app.recurrence import REPEATS, next_due
 from app.router import ApiError, route
 
 MAX_TITLE_LENGTH = 500
@@ -79,6 +86,15 @@ def clean_fields(conn, body, partial):
         if priority not in PRIORITIES:
             raise ApiError(400, "Prioritas harus 'normal' atau 'high'.")
         fields["priority"] = priority
+
+    if "repeat" in body:
+        if body["repeat"] is not None and body["repeat"] not in REPEATS:
+            raise ApiError(400, "Pengulangan harus daily, weekly, monthly, atau null.")
+        fields["repeat"] = body["repeat"]
+
+    # Tanggal atau pola diubah: tanggal patokan bulanan dihitung ulang dari tanggal baru.
+    if "repeat" in fields or "due_date" in fields:
+        fields["repeat_day"] = None
 
     if "category_id" in body:
         category_id = body["category_id"]
@@ -191,15 +207,46 @@ def read_task(req):
         return get_task(conn, req.params["id"])
 
 
+def create_next_occurrence(conn, task):
+    """Buat tugas untuk jadwal berikutnya dari tugas berulang yang baru selesai."""
+    due = date.fromisoformat(task["due_date"]) if task["due_date"] else None
+    anchor = task["repeat_day"] or (due or date.today()).day
+    next_date = next_due(due, task["repeat"], date.today(), anchor)
+    timestamp = now()
+    cur = conn.execute(
+        "INSERT INTO tasks (title, priority, category_id, repeat, repeat_day, due_date, done, created_at, updated_at)"
+        " VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)",
+        (task["title"], task["priority"], task["category_id"], task["repeat"],
+         anchor if task["repeat"] == "monthly" else None, next_date.isoformat(), timestamp, timestamp),
+    )
+    conn.execute("UPDATE tasks SET next_task_id = ? WHERE id = ?", (cur.lastrowid, task["id"]))
+    return get_task(conn, cur.lastrowid)
+
+
+def remove_untouched_next(conn, task):
+    """Tanda selesai dibatalkan: hapus jadwal berikutnya bila belum dikerjakan atau diubah."""
+    if not task["next_task_id"]:
+        return
+    nxt = conn.execute("SELECT * FROM tasks WHERE id = ?", (task["next_task_id"],)).fetchone()
+    if nxt and not nxt["done"] and nxt["updated_at"] == nxt["created_at"]:
+        conn.execute("DELETE FROM tasks WHERE id = ?", (nxt["id"],))
+    conn.execute("UPDATE tasks SET next_task_id = NULL WHERE id = ?", (task["id"],))
+
+
 @route("PATCH", "/api/tasks/{id}")
 def update_task(req):
     with connection() as conn:
         current = get_task(conn, req.params["id"])
         fields = clean_fields(conn, req.body, partial=True)
+        # Tanggal & pola tidak benar-benar berubah: pertahankan tanggal patokan bulanan.
+        if (fields.get("due_date", current["due_date"]) == current["due_date"]
+                and fields.get("repeat", current["repeat"]) == current["repeat"]):
+            fields.pop("repeat_day", None)
         if not fields:
             return current
 
-        if "done" in fields and bool(fields["done"]) != current["done"]:
+        done_changed = "done" in fields and bool(fields["done"]) != current["done"]
+        if done_changed:
             fields["completed_at"] = now() if fields["done"] else None
         fields["updated_at"] = now()
 
@@ -208,7 +255,18 @@ def update_task(req):
             f"UPDATE tasks SET {assignments} WHERE id = ?",
             [*fields.values(), req.params["id"]],
         )
-        return get_task(conn, req.params["id"])
+        task = get_task(conn, req.params["id"])
+
+        next_task = None
+        if done_changed and task["done"] and task["repeat"] and not task["next_task_id"]:
+            next_task = create_next_occurrence(conn, task)
+        elif done_changed and not task["done"]:
+            remove_untouched_next(conn, task)
+
+        task = get_task(conn, req.params["id"])
+        if next_task:
+            task["next_task"] = next_task
+        return task
 
 
 @route("DELETE", "/api/tasks/{id}")

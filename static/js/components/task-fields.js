@@ -46,3 +46,21 @@ export function categorySelect(categories, value = null) {
   });
   return select;
 }
+
+/** Label pengulangan untuk ditampilkan. */
+export const REPEAT_LABELS = {
+  daily: 'Setiap hari',
+  weekly: 'Setiap minggu',
+  monthly: 'Setiap bulan',
+};
+
+/** Pilihan pengulangan. Baca nilainya lewat .repeat (null = tidak berulang). */
+export function repeatSelect(value = null) {
+  const select = el('select', { class: 'input', name: 'repeat', 'aria-label': 'Ulangi' },
+    el('option', { value: '' }, 'Tidak berulang'),
+    Object.entries(REPEAT_LABELS).map(([key, label]) => el('option', { value: key }, label)),
+  );
+  select.value = value || '';
+  Object.defineProperty(select, 'repeat', { get: () => select.value || null });
+  return select;
+}

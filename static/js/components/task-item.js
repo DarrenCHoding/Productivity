@@ -1,10 +1,11 @@
 // Satu baris tugas di daftar, beserta aksinya (selesai, edit, hapus).
 
 import { api } from '../api.js';
-import { describeDue, formatDuration, formatLong } from '../dates.js';
+import { describeDue, formatDuration, formatLong, formatShort, todayISO } from '../dates.js';
 import { icon } from '../icons.js';
 import { attempt, el, toast } from '../ui.js';
 import { openTaskDialog } from './task-dialog.js';
+import { REPEAT_LABELS } from './task-fields.js';
 
 /**
  * @param task       data tugas dari API
@@ -14,7 +15,13 @@ export function taskItem(task, { onChanged }) {
   async function toggleDone() {
     const updated = await attempt(() => api.updateTask(task.id, { done: !task.done }));
     if (!updated) return;
-    toast(updated.done ? 'Tugas selesai' : 'Tugas dikembalikan ke belum selesai');
+    if (updated.next_task) {
+      const due = updated.next_task.due_date;
+      const when = describeDue(due, todayISO()).state === 'tomorrow' ? 'besok' : formatShort(due);
+      toast(`Tugas selesai. Jadwal berikutnya: ${when}`);
+    } else {
+      toast(updated.done ? 'Tugas selesai' : 'Tugas dikembalikan ke belum selesai');
+    }
     onChanged();
   }
 
@@ -34,7 +41,8 @@ export function taskItem(task, { onChanged }) {
   const overdue = !task.done && due?.state === 'overdue';
   const important = task.priority === 'high';
   const focused = task.focus_seconds >= 60;
-  const hasMeta = due || important || task.category_name || focused;
+  const repeats = Boolean(task.repeat) && !task.done;
+  const hasMeta = due || important || task.category_name || focused || repeats;
 
   const classes = ['task'];
   if (task.done) classes.push('done');
@@ -58,6 +66,7 @@ export function taskItem(task, { onChanged }) {
           class: `chip chip-due due-${task.done ? 'done' : due.state}`,
           title: `Jatuh tempo: ${formatLong(task.due_date)}`,
         }, icon('calendar', 14), due.label),
+        repeats && el('span', { class: 'chip chip-repeat', title: 'Tugas berulang' }, icon('repeat', 14), REPEAT_LABELS[task.repeat]),
         task.category_name && el('span', { class: 'chip chip-category' }, icon('tag', 14), task.category_name),
         focused && el('span', { class: 'chip chip-focus', title: `Total waktu fokus: ${formatDuration(task.focus_seconds)}` },
           icon('timer', 14), formatDuration(task.focus_seconds, { short: true })),

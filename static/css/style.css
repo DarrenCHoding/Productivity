@@ -747,3 +747,8 @@ label.btn:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; 
 @media (max-width: 600px) {
   .ai-settings .setting-action select { max-width: none; width: 100%; }
 }
+
+/* ===== Tugas berulang ===== */
+.field-row.even { grid-template-columns: 1fr 1fr; }
+.field-hint { margin: -8px 0 0; font-size: 13px; color: var(--text-3); }
+.chip-repeat { background: var(--ok-soft); color: var(--ok); }
