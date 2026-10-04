@@ -9,10 +9,12 @@ from urllib.parse import parse_qsl, urlsplit
 
 import app.api  # noqa: F401  (memuat & mendaftarkan semua API)
 from app.db import PROJECT_DIR
-from app.router import ApiError, Request, match
+from app.router import ApiError, Request, Response, match
 
 STATIC_DIR = PROJECT_DIR / "static"
-MAX_BODY_BYTES = 1_000_000
+MAX_BODY_BYTES = 1_000_000  # data JSON biasa
+MAX_UPLOAD_BYTES = 200_000_000  # unggahan file (misalnya file cadangan)
+UPLOAD_TYPE = "application/octet-stream"
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -69,14 +71,19 @@ class Handler(SimpleHTTPRequestHandler):
             self._send_json(extra, {"error": message})
             return
         try:
+            body, raw = self._read_body()
             req = Request(
                 method=method,
                 path=url.path,
                 query=dict(parse_qsl(url.query)),
-                body=self._read_json_body(),
+                body=body,
                 params=extra,
+                raw=raw,
             )
             result = func(req)
+            if isinstance(result, Response):
+                self._send_file(result)
+                return
             status, data = result if isinstance(result, tuple) else (200, result)
             self._send_json(status, data)
         except ApiError as e:
@@ -85,17 +92,30 @@ class Handler(SimpleHTTPRequestHandler):
             traceback.print_exc()
             self._send_json(500, {"error": "Terjadi kesalahan di server."})
 
-    def _read_json_body(self):
+    def _read_body(self):
+        """Baca isi permintaan. Hasil: (data JSON atau None, isi mentah)."""
         length = int(self.headers.get("Content-Length") or 0)
+        is_upload = (self.headers.get("Content-Type") or "").startswith(UPLOAD_TYPE)
         if length == 0:
-            return None
-        if length > MAX_BODY_BYTES:
+            return None, b""
+        if length > (MAX_UPLOAD_BYTES if is_upload else MAX_BODY_BYTES):
             raise ApiError(413, "Data yang dikirim terlalu besar.")
         raw = self.rfile.read(length)
+        if is_upload:
+            return None, raw
         try:
-            return json.loads(raw.decode("utf-8"))
+            return json.loads(raw.decode("utf-8")), raw
         except (UnicodeDecodeError, json.JSONDecodeError):
             raise ApiError(400, "Format data tidak valid (harus JSON).")
+
+    def _send_file(self, response):
+        self.send_response(response.status)
+        self.send_header("Content-Type", response.content_type)
+        self.send_header("Content-Length", str(len(response.body)))
+        if response.filename:
+            self.send_header("Content-Disposition", f'attachment; filename="{response.filename}"')
+        self.end_headers()
+        self.wfile.write(response.body)
 
     def _send_json(self, status, data):
         if status == 204:

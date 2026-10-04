@@ -20,9 +20,10 @@ import { el } from './ui.js';
 import { allTasksView } from './views/all-tasks.js';
 import { categoriesView } from './views/categories.js';
 import { focusView } from './views/focus.js';
+import { settingsView } from './views/settings.js';
 import { todayView } from './views/today.js';
 
-const VIEWS = [todayView, allTasksView, focusView, categoriesView];
+const VIEWS = [todayView, allTasksView, focusView, categoriesView, settingsView];
 const DEFAULT_PATH = VIEWS[0].path;
 
 const navList = document.getElementById('nav');
@@ -146,3 +147,4 @@ for (const view of VIEWS) {
 // Satu fitur yang gagal disiapkan tidak boleh membuat seluruh aplikasi berhenti.
 await Promise.all(VIEWS.filter((v) => v.init).map((v) => Promise.resolve().then(v.init).catch(console.error)));
 renderView();
+updateBadges();

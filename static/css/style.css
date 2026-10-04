@@ -573,3 +573,73 @@ button, input, select, textarea { font: inherit; color: inherit; }
   font-size: 14px;
   color: var(--text-2);
 }
+
+/* ===== Pengaturan & cadangan ===== */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+label.btn:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.settings-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+.setting-row:first-child { border-top: none; }
+.setting-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.setting-text { flex: 1; min-width: 0; }
+.setting-title { font-weight: 600; }
+.setting-text p { margin: 2px 0 0; font-size: 14px; color: var(--text-2); }
+.setting-action { flex: none; }
+.setting-action .btn { text-decoration: none; color: inherit; }
+.setting-action .btn.primary { color: #fff; }
+
+.section-note { margin: -2px 0 10px; font-size: 14px; color: var(--text-2); }
+.section-note code {
+  font-size: 13px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow-wrap: anywhere;
+}
+.backup-row { padding: 4px 8px 4px 14px; }
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 16px;
+  margin-bottom: 20px;
+  border-radius: var(--radius);
+  font-size: 15px;
+}
+.notice span { flex: 1; }
+.notice.success { background: var(--ok-soft); color: var(--text); border: 1px solid var(--ok); }
+
+@media (max-width: 600px) {
+  .setting-row { flex-wrap: wrap; }
+  .setting-action { width: 100%; padding-left: 54px; }
+}

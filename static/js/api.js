@@ -23,6 +23,25 @@ async function request(method, path, body) {
   return data;
 }
 
+/** Kirim file apa adanya (misalnya file cadangan). */
+async function upload(path, file) {
+  let res;
+  try {
+    res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: file,
+    });
+  } catch {
+    throw new Error('Tidak bisa terhubung ke server. Pastikan server.py masih berjalan.');
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error((data && data.error) || `Terjadi kesalahan (kode ${res.status}).`);
+  }
+  return data;
+}
+
 function query(params) {
   const q = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -55,6 +74,12 @@ export const api = {
   listFocusSessions: (params = {}) => request('GET', `/api/focus/sessions${query(params)}`),
   logFocusSession: (data) => request('POST', '/api/focus/sessions', data),
   deleteFocusSession: (id) => request('DELETE', `/api/focus/sessions/${id}`),
+
+  // Cadangan & pemulihan
+  exportUrl: '/api/backup/export',
+  restoreBackup: (file) => upload('/api/backup/restore', file),
+  listBackups: () => request('GET', '/api/backup/automatic'),
+  restoreAutomaticBackup: (name) => request('POST', '/api/backup/automatic/restore', { name }),
 };
 
 export { request, query };

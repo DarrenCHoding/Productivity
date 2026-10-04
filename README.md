@@ -10,8 +10,11 @@ Aplikasi productivity pribadi berbasis web, untuk dipakai sendiri di komputer An
 - **Kategori** (misalnya Kerja, Pribadi, Kuliah) yang bisa dipakai untuk memfilter tugas.
 - Semua data tersimpan permanen di satu file database di komputer Anda.
 
-**Tahap 2** (sedang dikerjakan, satu fitur per langkah)
+**Tahap 2**
 - **Timer fokus** (pomodoro): 25 menit fokus, 5 menit istirahat. Durasinya bisa diubah, timer bisa dikaitkan ke satu tugas, dan total waktu fokus tiap tugas tercatat.
+
+**Tahap 3** (sedang dikerjakan, satu fitur per langkah)
+- **Ekspor & cadangan:** unduh seluruh data ke satu file, pulihkan dari file itu, dan cadangan otomatis setiap hari (7 hari terakhir disimpan).
 
 ---
 
@@ -86,20 +89,39 @@ data/productivity.db
 (di dalam folder aplikasi). Lokasi lengkapnya juga ditampilkan di terminal setiap kali aplikasi dijalankan, pada baris `File data`.
 
 - Setiap perubahan **langsung disimpan** ke file ini. Data tidak hilang saat browser ditutup, aplikasi dihentikan, atau komputer dimatikan.
-- **Backup:** hentikan aplikasi (Ctrl+C), lalu salin file `productivity.db` ke tempat lain, misalnya flashdisk atau Google Drive.
-- **Memulihkan backup:** hentikan aplikasi, taruh salinan backup di `data/productivity.db`, lalu jalankan lagi.
 - **Mulai dari nol:** hentikan aplikasi, lalu hapus atau pindahkan file `data/productivity.db`. File baru yang kosong dibuat otomatis saat aplikasi dijalankan lagi.
 - File ini sengaja **tidak ikut masuk Git**, jadi data pribadi Anda tidak akan ter-upload ke GitHub.
 
-### Cadangan otomatis saat ada fitur baru
+### Mengunduh dan memulihkan data
 
-Kalau versi baru aplikasi perlu mengubah struktur database, aplikasi **otomatis membuat cadangan** sebelum mengubah apa pun. Cadangan disimpan di:
+Buka menu **Pengaturan** → bagian **Data & cadangan**.
+
+- **Unduh data:** menyimpan seluruh data (tugas, kategori, riwayat fokus, pengaturan) ke satu file, misalnya `productivity-cadangan-2026-10-04-1530.db`. Simpan file ini di tempat aman, misalnya flashdisk atau Google Drive. Sebaiknya lakukan ini secara rutin, karena cadangan otomatis (di bawah) tersimpan di komputer yang sama.
+- **Pulihkan dari file:** tekan **Pilih file…**, pilih file cadangan yang pernah Anda unduh, lalu konfirmasi. Seluruh data saat ini **diganti** dengan isi file itu.
+  - Sebelum diganti, file diperiksa dulu. File yang bukan cadangan Productivity, rusak, atau dibuat oleh versi aplikasi yang lebih baru akan ditolak, dan data Anda tidak berubah.
+  - Data saat ini **selalu dicadangkan dulu** (muncul di daftar sebagai "Sebelum pemulihan"), jadi pemulihan yang salah bisa dibatalkan dengan memulihkan cadangan itu.
+  - File cadangan dari versi aplikasi yang lebih lama boleh dipakai; strukturnya diperbarui otomatis.
+
+### Cadangan otomatis
+
+Aplikasi menyimpan cadangan sendiri ke folder:
 
 ```
-data/backups/productivity-<tanggal-jam>-sebelum-v<nomor>.db
+data/backups/
 ```
 
-Terminal juga menampilkan lokasinya saat cadangan dibuat. Kalau ada masalah setelah pembaruan, hentikan aplikasi lalu salin file cadangan itu menjadi `data/productivity.db`. Cadangan lama yang sudah tidak diperlukan boleh dihapus.
+Lokasi lengkapnya ditampilkan di terminal (baris `Cadangan`) dan di halaman Pengaturan.
+
+| Nama file | Kapan dibuat | Berapa lama disimpan |
+|---|---|---|
+| `productivity-harian-<tanggal>.db` | Sekali sehari, saat aplikasi berjalan | **7 hari terakhir**; yang lebih lama dihapus otomatis |
+| `productivity-<tanggal-jam>-sebelum-pemulihan.db` | Sebelum data dipulihkan dari cadangan | Tidak dihapus otomatis |
+| `productivity-<tanggal-jam>-sebelum-v<nomor>.db` | Sebelum struktur database diubah karena ada fitur baru | Tidak dihapus otomatis |
+
+- Cadangan harian dibuat saat aplikasi dinyalakan (kalau hari itu belum ada), lalu diperiksa lagi setiap 30 menit. Kalau aplikasi dibiarkan menyala melewati tengah malam, cadangan hari berikutnya ikut dibuat. Kalau aplikasi tidak dinyalakan sama sekali pada suatu hari, hari itu tidak punya cadangan, karena memang tidak ada data yang berubah.
+- **Memulihkan cadangan otomatis:** di halaman Pengaturan, bagian **Cadangan otomatis**, tekan **Pulihkan** pada cadangan yang diinginkan.
+- Cadangan "sebelum pemulihan" dan "sebelum pembaruan" yang sudah tidak diperlukan boleh Anda hapus sendiri dari folder itu.
+- **Kalau aplikasi tidak bisa dibuka sama sekali:** hentikan aplikasi (Ctrl+C), salin salah satu file dari `data/backups/` menjadi `data/productivity.db`, lalu jalankan lagi.
 
 ## 6. Pilihan tambahan
 
@@ -153,6 +175,8 @@ app/
     categories.py         API kategori
     focus.py              API riwayat sesi fokus
     settings.py           API pengaturan (misalnya durasi timer)
+    backup.py             API ekspor, pemulihan, dan daftar cadangan
+  backup.py               logika cadangan & pemulihan, termasuk cadangan harian
     system.py             /api/health
 static/
   index.html              kerangka halaman
@@ -163,7 +187,7 @@ static/
     focus-timer.js        mesin timer fokus (tetap berjalan di halaman mana pun)
     dates.js, ui.js, icons.js, events.js   fungsi bantu
     components/           bagian tampilan yang dipakai ulang (baris tugas, form, dll.)
-    views/                satu file per halaman (today.js, all-tasks.js, focus.js, categories.js)
+    views/                satu file per halaman (today.js, all-tasks.js, focus.js, categories.js, settings.js)
 tests/                    uji otomatis
 data/                     file database (tidak masuk Git)
 ```
@@ -188,6 +212,10 @@ data/                     file database (tidak masuk Git)
 | GET | `/api/focus/sessions` | Riwayat sesi fokus (`?date=YYYY-MM-DD` untuk satu hari) |
 | POST | `/api/focus/sessions` | Catat sesi: `duration_seconds`, `task_id` (opsional), `completed` |
 | DELETE | `/api/focus/sessions/<id>` | Hapus satu sesi dari riwayat |
+| GET | `/api/backup/export` | Unduh seluruh data (file `.db`) |
+| POST | `/api/backup/restore` | Pulihkan dari file yang diunggah (`Content-Type: application/octet-stream`) |
+| GET | `/api/backup/automatic` | Daftar cadangan di `data/backups/` |
+| POST | `/api/backup/automatic/restore` | Pulihkan dari salah satu cadangan itu: `name` |
 
 ### Menjalankan uji otomatis
 

@@ -17,7 +17,8 @@ import webbrowser
 if sys.version_info < (3, 8):
     sys.exit("Aplikasi ini butuh Python 3.8 atau lebih baru.")
 
-from app.db import get_db_path, init_db  # noqa: E402
+from app.backup import start_daily_backups  # noqa: E402
+from app.db import get_backup_dir, get_db_path, init_db  # noqa: E402
 from app.server import make_server  # noqa: E402
 
 
@@ -48,7 +49,10 @@ def main():
     if args.host == "0.0.0.0":
         print(f"  Dari perangkat lain di jaringan rumah: http://<alamat-IP-komputer-ini>:{args.port}")
     print(f"  File data       : {get_db_path()}")
+    print(f"  Cadangan        : {get_backup_dir()}  (otomatis setiap hari, 7 terakhir)")
     print("Tekan Ctrl+C untuk menghentikan.")
+
+    start_daily_backups(on_created=lambda path: print(f"Cadangan harian dibuat: {path.name}"))
 
     if not args.no_browser:
         threading.Timer(0.5, lambda: webbrowser.open(url)).start()

@@ -10,6 +10,7 @@ Cara pakai di file API:
 
 Fungsi menerima objek Request dan mengembalikan data (dict/list) yang akan
 dikirim sebagai JSON, atau tuple (status, data) untuk kode status lain.
+Untuk mengirim file (misalnya unduhan cadangan), kembalikan objek Response.
 """
 
 import re
@@ -27,12 +28,26 @@ class ApiError(Exception):
 
 
 class Request:
-    def __init__(self, method, path, query, body, params):
+    def __init__(self, method, path, query, body, params, raw=b""):
         self.method = method
         self.path = path
         self.query = query  # dict: nama -> nilai (string)
         self.body = body  # hasil JSON dari isi permintaan (atau None)
         self.params = params  # dict: bagian {nama} dari alamat
+        self.raw = raw  # isi permintaan apa adanya (untuk unggahan file)
+
+
+class Response:
+    """Jawaban berupa file, bukan JSON.
+
+    filename diisi bila browser harus menyimpannya sebagai unduhan.
+    """
+
+    def __init__(self, body, content_type, filename=None, status=200):
+        self.body = body
+        self.content_type = content_type
+        self.filename = filename
+        self.status = status
 
 
 def route(method, pattern):

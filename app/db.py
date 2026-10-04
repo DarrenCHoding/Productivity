@@ -115,26 +115,37 @@ def connection():
         conn.close()
 
 
-def backup_database(label):
-    """Salin file database ke data/backups/. Hasil: lokasi file cadangan.
+def get_backup_dir():
+    """Folder cadangan: data/backups/ (di sebelah file database)."""
+    return _db_path.parent / "backups"
 
-    Memakai fitur backup bawaan SQLite, sehingga salinannya selalu utuh.
+
+def copy_database(source_path, target_path):
+    """Salin isi satu database SQLite ke database lain.
+
+    Memakai fitur backup bawaan SQLite, sehingga salinannya selalu utuh walaupun
+    aplikasi sedang dipakai. Isi database tujuan diganti seluruhnya.
     """
-    backup_dir = _db_path.parent / "backups"
+    source = sqlite3.connect(source_path, timeout=10)
+    target = sqlite3.connect(target_path, timeout=10)
+    try:
+        source.backup(target)
+    finally:
+        target.close()
+        source.close()
+
+
+def backup_database(label):
+    """Salin file database ke data/backups/. Hasil: lokasi file cadangan."""
+    backup_dir = get_backup_dir()
     backup_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     target = backup_dir / f"{_db_path.stem}-{stamp}-{label}.db"
-    source = sqlite3.connect(_db_path)
-    copy = sqlite3.connect(target)
-    try:
-        source.backup(copy)
-    finally:
-        copy.close()
-        source.close()
+    copy_database(_db_path, target)
     return target
 
 
-def init_db():
+def init_db(make_backup=True):
     """Buat folder & file database bila belum ada, lalu jalankan migrasi yang tertunda.
 
     Hasil: lokasi file cadangan bila migrasi dijalankan pada database lama,
@@ -145,7 +156,7 @@ def init_db():
     conn = connect()
     try:
         current = conn.execute("PRAGMA user_version").fetchone()[0]
-        if 0 < current < len(MIGRATIONS):
+        if make_backup and 0 < current < len(MIGRATIONS):
             backup = backup_database(f"sebelum-v{len(MIGRATIONS)}")
         for version, script in enumerate(MIGRATIONS, start=1):
             if version <= current:

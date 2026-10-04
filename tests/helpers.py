@@ -43,6 +43,17 @@ class ApiTestCase(unittest.TestCase):
         except urllib.error.HTTPError as e:
             return e.code, self._decode(e)
 
+    def request_raw(self, method, path, data=None, content_type="application/octet-stream"):
+        """Kirim/terima data apa adanya (misalnya file). Hasil: (status, header, bytes)."""
+        req = urllib.request.Request(self.base_url + path, data=data, method=method)
+        if data is not None:
+            req.add_header("Content-Type", content_type)
+        try:
+            with urllib.request.urlopen(req) as res:
+                return res.status, res.headers, res.read()
+        except urllib.error.HTTPError as e:
+            return e.code, e.headers, e.read()
+
     @staticmethod
     def _decode(res):
         raw = res.read()
