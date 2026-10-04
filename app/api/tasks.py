@@ -1,6 +1,6 @@
 """API tugas.
 
-    GET    /api/tasks             daftar tugas  (?status=open|done|all)
+    GET    /api/tasks             daftar tugas  (?status=..., ?view=today)
 
 Kolom tugas yang bisa dikirim: title, done, due_date ("YYYY-MM-DD" atau null),
 priority ("normal" atau "high").
@@ -87,18 +87,39 @@ def clean_date(value, label, required=False):
 
 @route("GET", "/api/tasks")
 def list_tasks(req):
+    """Daftar tugas.
+
+    ?status=open|done|all   (default: all)
+    ?view=today             hanya tugas belum selesai yang jatuh tempo hari ini
+                            atau terlambat, ditambah tugas yang diselesaikan hari ini
+    ?today=YYYY-MM-DD       tanggal "hari ini" menurut perangkat pengguna
+                            (default: tanggal di komputer server)
+    """
     status = req.query.get("status", "all")
-    where = {
+    status_filter = {
         "all": "1",
         "open": "done = 0",
         "done": "done = 1",
     }.get(status)
-    if where is None:
+    if status_filter is None:
         raise ApiError(400, "Status harus open, done, atau all.")
+
+    conditions = [status_filter]
+    values = []
+
+    view = req.query.get("view", "all")
+    if view == "today":
+        today = clean_date(req.query.get("today"), "Tanggal hari ini") or date.today().isoformat()
+        conditions.append(
+            "((done = 0 AND due_date <= ?) OR (done = 1 AND substr(completed_at, 1, 10) = ?))"
+        )
+        values += [today, today]
+    elif view != "all":
+        raise ApiError(400, "Tampilan harus today atau all.")
 
     sql = f"""
         SELECT * FROM tasks
-        WHERE {where}
+        WHERE {" AND ".join(conditions)}
         ORDER BY
             done,
             CASE WHEN done = 1 THEN completed_at END DESC,
@@ -108,7 +129,7 @@ def list_tasks(req):
             created_at, id
     """
     with connection() as conn:
-        return [to_dict(row) for row in conn.execute(sql)]
+        return [to_dict(row) for row in conn.execute(sql, values)]
 
 
 @route("POST", "/api/tasks")

@@ -126,3 +126,49 @@ class DueDateAndPriorityTest(ApiTestCase):
             [t["title"] for t in tasks],
             ["penting-nanti", "penting-tanpa", "biasa-dekat", "biasa-nanti", "biasa-tanpa"],
         )
+
+
+class TodayViewTest(ApiTestCase):
+    TODAY = "2026-10-04"
+
+    def add(self, title, **extra):
+        status, task = self.request("POST", "/api/tasks", {"title": title, **extra})
+        self.assertEqual(status, 201, task)
+        return task
+
+    def today_titles(self):
+        status, tasks = self.request("GET", f"/api/tasks?view=today&today={self.TODAY}")
+        self.assertEqual(status, 200, tasks)
+        return [t["title"] for t in tasks]
+
+    def test_shows_today_and_overdue_with_important_first(self):
+        self.add("tanpa-deadline")
+        self.add("besok", due_date="2026-10-05", priority="high")
+        self.add("hari-ini-biasa", due_date="2026-10-04")
+        self.add("terlambat-biasa", due_date="2026-10-01")
+        self.add("hari-ini-penting", due_date="2026-10-04", priority="high")
+        self.add("terlambat-penting", due_date="2026-09-30", priority="high")
+        self.assertEqual(
+            self.today_titles(),
+            ["terlambat-penting", "hari-ini-penting", "terlambat-biasa", "hari-ini-biasa"],
+        )
+
+    def test_includes_tasks_completed_today(self):
+        task = self.add("selesai", due_date="2026-10-04")
+        _, done = self.request("PATCH", f"/api/tasks/{task['id']}", {"done": True})
+        # completed_at memakai jam server; uji dengan tanggal penyelesaiannya
+        completed_day = done["completed_at"][:10]
+        _, tasks = self.request("GET", f"/api/tasks?view=today&today={completed_day}")
+        self.assertEqual([t["title"] for t in tasks], ["selesai"])
+        _, tasks = self.request("GET", "/api/tasks?view=today&today=2000-01-01")
+        self.assertEqual(tasks, [])
+
+    def test_invalid_params(self):
+        self.assertEqual(self.request("GET", "/api/tasks?view=minggu")[0], 400)
+        self.assertEqual(self.request("GET", "/api/tasks?view=today&today=kemarin")[0], 400)
+
+    def test_default_today_is_server_date(self):
+        from datetime import date
+        self.add("hari-ini", due_date=date.today().isoformat())
+        _, tasks = self.request("GET", "/api/tasks?view=today")
+        self.assertEqual([t["title"] for t in tasks], ["hari-ini"])

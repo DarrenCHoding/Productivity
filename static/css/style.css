@@ -331,7 +331,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ===== Layar kecil (tablet tegak / ponsel) ===== */
 @media (max-width: 760px) {
-  .layout { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .sidebar {
     position: sticky;
     height: auto;
@@ -407,3 +407,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .task.important { border-left-color: var(--warn); }
 .task.overdue { border-left-color: var(--danger); background: var(--danger-soft); }
 .task.overdue .check .icon { border-color: var(--danger); }
+
+/* ===== Halaman "Hari ini" ===== */
+.view-header .summary { font-size: 14px; color: var(--text-3); }
+.view-header .summary:empty { display: none; }
+.empty-title { font-size: 17px; color: var(--text-2); margin: 0 0 4px; }
+.empty p { margin: 0; }
+.empty a { color: var(--accent); }

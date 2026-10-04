@@ -1,20 +1,73 @@
-// Halaman "Hari ini".
+// Halaman "Hari ini": tugas yang jatuh tempo hari ini dan yang terlambat,
+// tugas penting di atas. Tugas yang diselesaikan hari ini tampil di bagian bawah.
 
-import { el } from '../ui.js';
+import { api } from '../api.js';
+import { quickAdd } from '../components/quick-add.js';
+import { doneSection, taskList } from '../components/task-list.js';
+import { formatLong, todayISO } from '../dates.js';
+import { DATA_CHANGED, emit } from '../events.js';
+import { attempt, el, toast } from '../ui.js';
+
+function summaryText(open, today) {
+  if (open.length === 0) return '';
+  const overdue = open.filter((t) => t.due_date < today).length;
+  const parts = [`${open.length} tugas`];
+  if (overdue) parts.push(`${overdue} terlambat`);
+  return parts.join(' · ');
+}
 
 export const todayView = {
   path: 'hari-ini',
   title: 'Hari ini',
 
+  /** Angka di menu samping: jumlah tugas hari ini + terlambat yang belum selesai. */
+  async badge() {
+    const tasks = await api.listTasks({ view: 'today', status: 'open', today: todayISO() });
+    return tasks.length;
+  },
+
   async render(container) {
+    const today = todayISO();
+    const summary = el('p', { class: 'subtitle summary' });
+    const listArea = el('div', { class: 'list-area' });
+
+    async function load() {
+      const tasks = await attempt(() => api.listTasks({ view: 'today', today }));
+      if (!tasks) return;
+      const open = tasks.filter((t) => !t.done);
+      const done = tasks.filter((t) => t.done);
+      summary.textContent = summaryText(open, today);
+      listArea.replaceChildren(
+        open.length
+          ? taskList(open, { onChanged: load })
+          : el('div', { class: 'empty' },
+            el('p', { class: 'empty-title' }, done.length ? 'Semua tugas hari ini sudah selesai!' : 'Tidak ada tugas untuk hari ini.'),
+            el('p', {}, 'Tugas tanpa deadline atau dengan deadline nanti ada di ',
+              el('a', { href: '#/semua' }, 'Semua tugas'), '.'),
+          ),
+        doneSection(done, { onChanged: load, title: 'Selesai hari ini' }) || '',
+      );
+      emit(DATA_CHANGED);
+    }
+
     container.replaceChildren(
       el('header', { class: 'view-header' },
         el('h1', {}, 'Hari ini'),
-        el('p', { class: 'subtitle' }, new Date().toLocaleDateString('id-ID', {
-          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-        })),
+        el('p', { class: 'subtitle' }, formatLong(today)),
+        summary,
       ),
-      el('p', { class: 'empty' }, 'Tampilan ini akan aktif setelah fitur deadline dibuat. Untuk sementara, buka “Semua tugas”.'),
+      // Tugas baru di halaman ini otomatis bertenggat hari ini (bisa diganti).
+      quickAdd({
+        defaultDue: today,
+        onAdded: (task) => {
+          if (!task.due_date || task.due_date > today) {
+            toast('Tugas ditambahkan. Karena tenggatnya bukan hari ini, tugas ada di “Semua tugas”.');
+          }
+          load();
+        },
+      }),
+      listArea,
     );
+    await load();
   },
 };
