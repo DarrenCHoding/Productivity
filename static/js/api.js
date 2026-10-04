@@ -40,6 +40,12 @@ export const api = {
   createTask: (data) => request('POST', '/api/tasks', data),
   updateTask: (id, data) => request('PATCH', `/api/tasks/${id}`, data),
   deleteTask: (id) => request('DELETE', `/api/tasks/${id}`),
+
+  // Kategori
+  listCategories: () => request('GET', '/api/categories'),
+  createCategory: (name) => request('POST', '/api/categories', { name }),
+  renameCategory: (id, name) => request('PATCH', `/api/categories/${id}`, { name }),
+  deleteCategory: (id) => request('DELETE', `/api/categories/${id}`),
 };
 
 export { request, query };

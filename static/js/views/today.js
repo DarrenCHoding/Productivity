@@ -2,6 +2,7 @@
 // tugas penting di atas. Tugas yang diselesaikan hari ini tampil di bagian bawah.
 
 import { api } from '../api.js';
+import { categoryFilter, readCategoryFilter } from '../components/category-filter.js';
 import { quickAdd } from '../components/quick-add.js';
 import { doneSection, taskList } from '../components/task-list.js';
 import { formatLong, todayISO } from '../dates.js';
@@ -26,13 +27,15 @@ export const todayView = {
     return tasks.length;
   },
 
-  async render(container) {
+  async render(container, params) {
+    const categories = (await attempt(() => api.listCategories())) || [];
+    const filter = readCategoryFilter(params, categories);
     const today = todayISO();
     const summary = el('p', { class: 'subtitle summary' });
     const listArea = el('div', { class: 'list-area' });
 
     async function load() {
-      const tasks = await attempt(() => api.listTasks({ view: 'today', today }));
+      const tasks = await attempt(() => api.listTasks({ view: 'today', today, category: filter.query }));
       if (!tasks) return;
       const open = tasks.filter((t) => !t.done);
       const done = tasks.filter((t) => t.done);
@@ -41,7 +44,9 @@ export const todayView = {
         open.length
           ? taskList(open, { onChanged: load })
           : el('div', { class: 'empty' },
-            el('p', { class: 'empty-title' }, done.length ? 'Semua tugas hari ini sudah selesai!' : 'Tidak ada tugas untuk hari ini.'),
+            el('p', { class: 'empty-title' }, done.length
+              ? 'Semua tugas hari ini sudah selesai!'
+              : filter.label ? `Tidak ada tugas hari ini di "${filter.label}".` : 'Tidak ada tugas untuk hari ini.'),
             el('p', {}, 'Tugas tanpa deadline atau dengan deadline nanti ada di ',
               el('a', { href: '#/semua' }, 'Semua tugas'), '.'),
           ),
@@ -57,8 +62,11 @@ export const todayView = {
         summary,
       ),
       // Tugas baru di halaman ini otomatis bertenggat hari ini (bisa diganti).
+      categoryFilter('hari-ini', categories, filter.value),
       quickAdd({
         defaultDue: today,
+        categories,
+        defaultCategory: filter.defaultCategory,
         onAdded: (task) => {
           if (!task.due_date || task.due_date > today) {
             toast('Tugas ditambahkan. Karena tenggatnya bukan hari ini, tugas ada di “Semua tugas”.');

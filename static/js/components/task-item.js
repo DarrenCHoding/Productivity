@@ -33,6 +33,7 @@ export function taskItem(task, { onChanged }) {
   const due = task.due_date ? describeDue(task.due_date) : null;
   const overdue = !task.done && due?.state === 'overdue';
   const important = task.priority === 'high';
+  const hasMeta = due || important || task.category_name;
 
   const classes = ['task'];
   if (task.done) classes.push('done');
@@ -50,12 +51,13 @@ export function taskItem(task, { onChanged }) {
     }, icon('check', 16)),
     el('div', { class: 'task-body', onclick: edit },
       el('div', { class: 'task-title' }, task.title),
-      (due || important) && el('div', { class: 'task-meta' },
+      hasMeta && el('div', { class: 'task-meta' },
         important && el('span', { class: 'chip chip-important' }, icon('flag', 14), 'Penting'),
         due && el('span', {
           class: `chip chip-due due-${task.done ? 'done' : due.state}`,
           title: `Jatuh tempo: ${formatLong(task.due_date)}`,
         }, icon('calendar', 14), due.label),
+        task.category_name && el('span', { class: 'chip chip-category' }, icon('tag', 14), task.category_name),
       ),
     ),
     el('div', { class: 'task-actions' },

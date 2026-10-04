@@ -2,16 +2,18 @@
 //
 // Menambah halaman baru (misalnya timer fokus):
 //   1. Buat file static/js/views/timer.js yang mengekspor objek view:
-//        { path, title, render(container), badge() (opsional, angka di menu) }
+//        { path, title, render(container, params), badge() (opsional, angka di menu) }
+//      `params` berisi bagian setelah "?" di alamat, misalnya #/semua?kategori=3.
 //   2. Import di bawah dan tambahkan ke daftar VIEWS.
 
 import { todayISO } from './dates.js';
 import { DATA_CHANGED, on } from './events.js';
 import { el } from './ui.js';
 import { allTasksView } from './views/all-tasks.js';
+import { categoriesView } from './views/categories.js';
 import { todayView } from './views/today.js';
 
-const VIEWS = [todayView, allTasksView];
+const VIEWS = [todayView, allTasksView, categoriesView];
 const DEFAULT_PATH = VIEWS[0].path;
 
 const navList = document.getElementById('nav');
@@ -21,6 +23,11 @@ const badges = new Map(); // path -> elemen angka di menu
 function currentPath() {
   const hash = location.hash.replace(/^#\/?/, '');
   return hash.split('?')[0] || DEFAULT_PATH;
+}
+
+function currentParams() {
+  const query = location.hash.split('?')[1] || '';
+  return new URLSearchParams(query);
 }
 
 function buildNav() {
@@ -60,6 +67,7 @@ async function updateBadges() {
 }
 
 let renderedDate = todayISO();
+let renderToken = 0;
 
 async function renderView() {
   const view = VIEWS.find((v) => v.path === currentPath());
@@ -70,7 +78,13 @@ async function renderView() {
   renderedDate = todayISO();
   document.title = `${view.title} · Productivity`;
   highlightNav();
-  await view.render(viewContainer);
+
+  // Halaman disiapkan di luar layar dulu, lalu ditampilkan setelah datanya siap.
+  // Bila pengguna sudah pindah ke halaman lain sebelum selesai, hasilnya dibuang.
+  const token = ++renderToken;
+  const page = el('div', { class: 'page' });
+  await view.render(page, currentParams());
+  if (token === renderToken) viewContainer.replaceChildren(page);
 }
 
 /** Muat ulang halaman yang sedang dibuka. */

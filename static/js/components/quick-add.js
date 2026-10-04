@@ -3,19 +3,22 @@
 import { api } from '../api.js';
 import { icon } from '../icons.js';
 import { attempt, el } from '../ui.js';
-import { dueDateInput, priorityToggle } from './task-fields.js';
+import { categorySelect, dueDateInput, priorityToggle } from './task-fields.js';
 
 /**
  * @param onAdded     dipanggil setelah tugas berhasil ditambahkan
  * @param defaultDue  tanggal awal yang terisi (misalnya hari ini di halaman "Hari ini")
+ * @param categories  daftar kategori untuk pilihan kategori
+ * @param defaultCategory  kategori awal (misalnya kategori yang sedang difilter)
  */
-export function quickAdd({ onAdded, defaultDue = '' }) {
+export function quickAdd({ onAdded, defaultDue = '', categories = [], defaultCategory = null }) {
   const titleInput = el('input', {
     class: 'input title-input', name: 'title', maxlength: '500', autocomplete: 'off',
     placeholder: 'Tambah tugas baru…', 'aria-label': 'Judul tugas baru',
   });
   const dueInput = dueDateInput(defaultDue);
   const priority = priorityToggle('normal');
+  const category = categorySelect(categories, defaultCategory);
 
   async function submit(event) {
     event.preventDefault();
@@ -27,11 +30,13 @@ export function quickAdd({ onAdded, defaultDue = '' }) {
       title: titleInput.value,
       due_date: dueInput.value || null,
       priority: priority.priority,
+      category_id: category.categoryId,
     }));
     if (!task) return;
     titleInput.value = '';
     dueInput.value = defaultDue;
     priority.setPriority('normal');
+    category.value = defaultCategory == null ? '' : String(defaultCategory);
     titleInput.focus();
     onAdded(task);
   }
@@ -44,6 +49,7 @@ export function quickAdd({ onAdded, defaultDue = '' }) {
     el('div', { class: 'quick-add-options' },
       el('label', { class: 'inline-field' }, icon('calendar', 18), dueInput),
       priority,
+      categories.length > 0 && el('label', { class: 'inline-field' }, icon('tag', 18), category),
     ),
   );
 }

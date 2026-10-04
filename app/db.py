@@ -41,6 +41,17 @@ MIGRATIONS = [
         CHECK (priority IN ('normal', 'high'));
     CREATE INDEX idx_tasks_due_date ON tasks (due_date);
     """,
+    # 3: kategori. Bila kategori dihapus, tugasnya tetap ada tanpa kategori.
+    """
+    CREATE TABLE categories (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT NOT NULL UNIQUE COLLATE NOCASE,
+        created_at TEXT NOT NULL
+    );
+    ALTER TABLE tasks ADD COLUMN category_id INTEGER
+        REFERENCES categories (id) ON DELETE SET NULL;
+    CREATE INDEX idx_tasks_category ON tasks (category_id);
+    """,
 ]
 
 

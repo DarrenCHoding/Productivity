@@ -30,3 +30,19 @@ export function priorityToggle(value = 'normal') {
   button.setPriority(value);
   return button;
 }
+
+/**
+ * Pilihan kategori. Baca nilainya lewat .categoryId (nomor atau null).
+ * @param categories  daftar kategori dari API
+ */
+export function categorySelect(categories, value = null) {
+  const select = el('select', { class: 'input category-select', name: 'category_id', 'aria-label': 'Kategori' },
+    el('option', { value: '' }, 'Tanpa kategori'),
+    categories.map((c) => el('option', { value: String(c.id) }, c.name)),
+  );
+  select.value = value == null ? '' : String(value);
+  Object.defineProperty(select, 'categoryId', {
+    get: () => (select.value ? Number(select.value) : null),
+  });
+  return select;
+}
