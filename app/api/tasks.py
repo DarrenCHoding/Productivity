@@ -1,16 +1,24 @@
 """API tugas.
 
     GET    /api/tasks             daftar tugas  (?status=open|done|all)
+
+Kolom tugas yang bisa dikirim: title, done, due_date ("YYYY-MM-DD" atau null),
+priority ("normal" atau "high").
     POST   /api/tasks             tambah tugas
     GET    /api/tasks/{id}        ambil satu tugas
     PATCH  /api/tasks/{id}        ubah sebagian isi tugas
     DELETE /api/tasks/{id}        hapus tugas
 """
 
+import re
+from datetime import date
+
 from app.db import connection, now
 from app.router import ApiError, route
 
 MAX_TITLE_LENGTH = 500
+PRIORITIES = ("normal", "high")
+DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def to_dict(row):
@@ -50,7 +58,31 @@ def clean_fields(body, partial):
             raise ApiError(400, "Status selesai harus true atau false.")
         fields["done"] = int(body["done"])
 
+    if "due_date" in body:
+        fields["due_date"] = clean_date(body["due_date"], "Tanggal jatuh tempo")
+
+    if "priority" in body or not partial:
+        priority = body.get("priority", "normal")
+        if priority not in PRIORITIES:
+            raise ApiError(400, "Prioritas harus 'normal' atau 'high'.")
+        fields["priority"] = priority
+
     return fields
+
+
+def clean_date(value, label, required=False):
+    """Terima tanggal 'YYYY-MM-DD'. Nilai kosong/null berarti tanpa tanggal."""
+    if value is None or value == "":
+        if required:
+            raise ApiError(400, f"{label} wajib diisi.")
+        return None
+    if not isinstance(value, str) or not DATE_PATTERN.match(value):
+        raise ApiError(400, f"{label} harus berformat TTTT-BB-HH, contoh 2026-12-31.")
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        raise ApiError(400, f"{label} tidak valid.")
+    return value
 
 
 @route("GET", "/api/tasks")
@@ -70,6 +102,9 @@ def list_tasks(req):
         ORDER BY
             done,
             CASE WHEN done = 1 THEN completed_at END DESC,
+            priority = 'high' DESC,
+            due_date IS NULL,
+            due_date,
             created_at, id
     """
     with connection() as conn:

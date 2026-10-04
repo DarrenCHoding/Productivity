@@ -6,6 +6,8 @@ const PATHS = {
   trash: '<path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   chevron: '<path d="M9 6l6 6-6 6"/>',
+  calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  flag: '<path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/>',
 };
 
 export function icon(name, size = 20) {

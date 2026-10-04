@@ -34,6 +34,13 @@ MIGRATIONS = [
         completed_at TEXT
     );
     """,
+    # 2: tanggal jatuh tempo (opsional) dan prioritas
+    """
+    ALTER TABLE tasks ADD COLUMN due_date TEXT;
+    ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT 'normal'
+        CHECK (priority IN ('normal', 'high'));
+    CREATE INDEX idx_tasks_due_date ON tasks (due_date);
+    """,
 ]
 
 

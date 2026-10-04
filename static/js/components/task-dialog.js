@@ -2,6 +2,7 @@
 
 import { api } from '../api.js';
 import { el, toast } from '../ui.js';
+import { dueDateInput, priorityToggle } from './task-fields.js';
 
 /**
  * Buka jendela edit. Hasil: Promise yang bernilai true bila tugas diubah atau dihapus.
@@ -14,13 +15,19 @@ export function openTaskDialog(task) {
       class: 'input', name: 'title', required: true, maxlength: '500',
       value: task.title, autocomplete: 'off',
     });
+    const dueInput = dueDateInput(task.due_date);
+    const priority = priorityToggle(task.priority);
     const errorBox = el('p', { class: 'form-error', role: 'alert' });
 
     async function save(event) {
       event.preventDefault();
       errorBox.textContent = '';
       try {
-        await api.updateTask(task.id, { title: titleInput.value });
+        await api.updateTask(task.id, {
+          title: titleInput.value,
+          due_date: dueInput.value || null,
+          priority: priority.priority,
+        });
         changed = true;
         toast('Perubahan disimpan');
         dialog.close();
@@ -45,6 +52,10 @@ export function openTaskDialog(task) {
       el('form', { onsubmit: save },
         el('h2', {}, 'Edit tugas'),
         el('label', { class: 'field' }, el('span', {}, 'Judul'), titleInput),
+        el('div', { class: 'field-row' },
+          el('label', { class: 'field' }, el('span', {}, 'Tenggat (opsional)'), dueInput),
+          el('div', { class: 'field' }, el('span', {}, 'Prioritas'), priority),
+        ),
         errorBox,
         el('div', { class: 'dialog-actions' },
           el('button', { class: 'btn danger', type: 'button', onclick: remove }, 'Hapus'),

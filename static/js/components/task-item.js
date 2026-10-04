@@ -1,6 +1,7 @@
 // Satu baris tugas di daftar, beserta aksinya (selesai, edit, hapus).
 
 import { api } from '../api.js';
+import { describeDue, formatLong } from '../dates.js';
 import { icon } from '../icons.js';
 import { attempt, el, toast } from '../ui.js';
 import { openTaskDialog } from './task-dialog.js';
@@ -29,7 +30,16 @@ export function taskItem(task, { onChanged }) {
     onChanged();
   }
 
-  return el('li', { class: `task${task.done ? ' done' : ''}` },
+  const due = task.due_date ? describeDue(task.due_date) : null;
+  const overdue = !task.done && due?.state === 'overdue';
+  const important = task.priority === 'high';
+
+  const classes = ['task'];
+  if (task.done) classes.push('done');
+  if (overdue) classes.push('overdue');
+  if (important) classes.push('important');
+
+  return el('li', { class: classes.join(' ') },
     el('button', {
       class: 'check',
       type: 'button',
@@ -40,6 +50,13 @@ export function taskItem(task, { onChanged }) {
     }, icon('check', 16)),
     el('div', { class: 'task-body', onclick: edit },
       el('div', { class: 'task-title' }, task.title),
+      (due || important) && el('div', { class: 'task-meta' },
+        important && el('span', { class: 'chip chip-important' }, icon('flag', 14), 'Penting'),
+        due && el('span', {
+          class: `chip chip-due due-${task.done ? 'done' : due.state}`,
+          title: `Jatuh tempo: ${formatLong(task.due_date)}`,
+        }, icon('calendar', 14), due.label),
+      ),
     ),
     el('div', { class: 'task-actions' },
       el('button', { class: 'icon-btn', type: 'button', title: 'Edit', 'aria-label': 'Edit tugas', onclick: edit },

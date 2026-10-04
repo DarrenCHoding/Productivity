@@ -70,3 +70,59 @@ class TaskCrudTest(ApiTestCase):
         self.assertEqual(data["error"], "Tugas tidak ditemukan.")
         status, _ = self.request("PATCH", "/api/tasks/999", {"title": "x"})
         self.assertEqual(status, 404)
+
+
+class DueDateAndPriorityTest(ApiTestCase):
+    def add(self, title="Tugas", **extra):
+        status, task = self.request("POST", "/api/tasks", {"title": title, **extra})
+        self.assertEqual(status, 201, task)
+        return task
+
+    def test_defaults(self):
+        task = self.add()
+        self.assertIsNone(task["due_date"])
+        self.assertEqual(task["priority"], "normal")
+
+    def test_create_with_due_date_and_priority(self):
+        task = self.add(due_date="2026-12-31", priority="high")
+        self.assertEqual(task["due_date"], "2026-12-31")
+        self.assertEqual(task["priority"], "high")
+
+    def test_invalid_values(self):
+        for extra in (
+            {"due_date": "31-12-2026"},
+            {"due_date": "2026-02-30"},
+            {"due_date": 20261231},
+            {"priority": "urgent"},
+            {"priority": None},
+        ):
+            status, data = self.request("POST", "/api/tasks", {"title": "x", **extra})
+            self.assertEqual(status, 400, extra)
+            self.assertIn("error", data)
+
+    def test_change_and_clear_due_date(self):
+        task = self.add(due_date="2026-10-10")
+        _, updated = self.request("PATCH", f"/api/tasks/{task['id']}", {"due_date": None, "priority": "high"})
+        self.assertIsNone(updated["due_date"])
+        self.assertEqual(updated["priority"], "high")
+        _, updated = self.request("PATCH", f"/api/tasks/{task['id']}", {"due_date": ""})
+        self.assertIsNone(updated["due_date"])
+
+    def test_patch_title_keeps_other_fields(self):
+        task = self.add(due_date="2026-10-10", priority="high")
+        _, updated = self.request("PATCH", f"/api/tasks/{task['id']}", {"title": "Baru"})
+        self.assertEqual(updated["due_date"], "2026-10-10")
+        self.assertEqual(updated["priority"], "high")
+
+    def test_sort_order(self):
+        # Penting dulu, lalu yang deadline-nya paling dekat, tanpa deadline paling bawah.
+        self.add("biasa-tanpa")
+        self.add("biasa-nanti", due_date="2026-12-01")
+        self.add("penting-nanti", due_date="2026-12-01", priority="high")
+        self.add("biasa-dekat", due_date="2026-10-01")
+        self.add("penting-tanpa", priority="high")
+        _, tasks = self.request("GET", "/api/tasks?status=open")
+        self.assertEqual(
+            [t["title"] for t in tasks],
+            ["penting-nanti", "penting-tanpa", "biasa-dekat", "biasa-nanti", "biasa-tanpa"],
+        )

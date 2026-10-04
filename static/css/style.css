@@ -349,3 +349,61 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .nav a { white-space: nowrap; }
   .content { padding: 20px 16px 80px; }
 }
+
+/* ===== Deadline & prioritas ===== */
+.quick-add-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.inline-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+.inline-field .input { border-color: transparent; background: transparent; width: auto; }
+.date-input { min-width: 150px; }
+
+.btn.toggle { color: var(--text-2); }
+.btn.toggle[aria-pressed="true"] {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.btn.toggle[aria-pressed="true"] .icon svg { fill: currentColor; }
+
+.field-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+.chip-important { background: var(--warn-soft); color: var(--warn); font-weight: 500; }
+.chip-important .icon svg { fill: currentColor; }
+.due-today { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.due-overdue { background: var(--danger); color: #fff; font-weight: 600; }
+.due-done { color: var(--text-3); }
+
+/* Tugas penting: garis jingga di kiri. Tugas terlambat: garis & latar merah. */
+.task { border-left: 3px solid transparent; }
+.task.important { border-left-color: var(--warn); }
+.task.overdue { border-left-color: var(--danger); background: var(--danger-soft); }
+.task.overdue .check .icon { border-color: var(--danger); }
