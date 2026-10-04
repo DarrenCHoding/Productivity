@@ -35,7 +35,8 @@ def main():
     except OSError:
         sys.exit(
             f"Port {args.port} sedang dipakai program lain (mungkin aplikasi ini sudah berjalan).\n"
-            f"Tutup program itu, atau jalankan dengan port lain: python3 server.py --port 8001"
+            "Tutup program itu, atau jalankan dengan port lain, misalnya:\n"
+            "  python3 server.py --port 8001     (Windows: python server.py --port 8001)"
         )
 
     url = f"http://localhost:{args.port}"

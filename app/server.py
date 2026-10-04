@@ -1,6 +1,7 @@
 """Server web: melayani API (/api/...) dan file tampilan (folder static/)."""
 
 import json
+import os
 import traceback
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -120,6 +121,13 @@ class Handler(SimpleHTTPRequestHandler):
         pass
 
 
+class Server(ThreadingHTTPServer):
+    # Di Windows, opsi ini membuat dua program bisa memakai port yang sama tanpa
+    # error, sehingga menjalankan aplikasi dua kali tidak terdeteksi. Matikan di sana.
+    allow_reuse_address = os.name != "nt"
+    daemon_threads = True
+
+
 def make_server(host, port):
     handler = partial(Handler, directory=str(STATIC_DIR))
-    return ThreadingHTTPServer((host, port), handler)
+    return Server((host, port), handler)

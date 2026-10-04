@@ -53,8 +53,7 @@ export function formatLong(iso) {
 export function describeDue(dueISO, today = todayISO()) {
   const diff = daysBetween(today, dueISO);
   if (diff < 0) {
-    const late = -diff;
-    return { state: 'overdue', label: late === 1 ? 'Kemarin · terlambat' : `Terlambat ${late} hari` };
+    return { state: 'overdue', label: `Terlambat ${-diff} hari` };
   }
   if (diff === 0) return { state: 'today', label: 'Hari ini' };
   if (diff === 1) return { state: 'tomorrow', label: 'Besok' };
