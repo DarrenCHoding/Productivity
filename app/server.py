@@ -15,6 +15,7 @@ STATIC_DIR = PROJECT_DIR / "static"
 MAX_BODY_BYTES = 1_000_000  # data JSON biasa
 MAX_UPLOAD_BYTES = 200_000_000  # unggahan file (misalnya file cadangan)
 UPLOAD_TYPE = "application/octet-stream"
+MAX_DISCARD_BYTES = 16_000_000  # data kebesaran sampai ukuran ini dibaca & dibuang dulu
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -63,7 +64,21 @@ class Handler(SimpleHTTPRequestHandler):
 
     # --- API ---
 
+    def _from_other_site(self):
+        """Apakah permintaan ini dikirim oleh halaman dari situs lain?
+
+        Browser selalu menyertakan header Origin saat sebuah halaman mengirim data.
+        Tanpa pemeriksaan ini, situs jahat yang sedang Anda buka bisa diam-diam
+        mengubah data aplikasi atau memakai kuota AI. Permintaan tanpa Origin
+        (misalnya dari tes atau curl) bukan dari halaman web, jadi diizinkan.
+        """
+        origin = self.headers.get("Origin")
+        return origin is not None and urlsplit(origin).netloc != self.headers.get("Host")
+
     def _handle_api(self, method):
+        if method != "GET" and self._from_other_site():
+            self._send_json(403, {"error": "Permintaan dari situs lain ditolak."})
+            return
         url = urlsplit(self.path)
         func, extra = match(method, url.path)
         if func is None:
@@ -87,7 +102,10 @@ class Handler(SimpleHTTPRequestHandler):
             status, data = result if isinstance(result, tuple) else (200, result)
             self._send_json(status, data)
         except ApiError as e:
-            self._send_json(e.status, {"error": e.message})
+            error = {"error": e.message}
+            if e.code:
+                error["code"] = e.code
+            self._send_json(e.status, error)
         except Exception:
             traceback.print_exc()
             self._send_json(500, {"error": "Terjadi kesalahan di server."})
@@ -99,6 +117,16 @@ class Handler(SimpleHTTPRequestHandler):
         if length == 0:
             return None, b""
         if length > (MAX_UPLOAD_BYTES if is_upload else MAX_BODY_BYTES):
+            # Baca & buang dulu sisa data (bila tidak terlalu besar), supaya browser
+            # menerima pesan yang jelas, bukan "sambungan terputus" di tengah pengiriman.
+            if length <= MAX_DISCARD_BYTES:
+                remaining = length
+                while remaining > 0:
+                    chunk = self.rfile.read(min(remaining, 65536))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+            self.close_connection = True
             raise ApiError(413, "Data yang dikirim terlalu besar.")
         raw = self.rfile.read(length)
         if is_upload:

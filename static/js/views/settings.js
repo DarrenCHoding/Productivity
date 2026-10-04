@@ -1,6 +1,8 @@
-// Halaman "Pengaturan": cadangan & pemulihan data.
+// Halaman "Pengaturan": cadangan & pemulihan data, dan fitur AI.
 
 import { api } from '../api.js';
+import { aiSection } from '../components/ai-settings.js';
+import { settingRow } from '../components/setting-row.js';
 import { formatLong, formatTime } from '../dates.js';
 import { icon } from '../icons.js';
 import { attempt, el, toast } from '../ui.js';
@@ -52,16 +54,6 @@ function restoredNotice() {
   return notice;
 }
 
-function settingRow(iconName, title, description, action) {
-  return el('div', { class: 'setting-row' },
-    el('span', { class: 'setting-icon' }, icon(iconName, 20)),
-    el('div', { class: 'setting-text' },
-      el('div', { class: 'setting-title' }, title),
-      el('p', {}, description),
-    ),
-    el('div', { class: 'setting-action' }, action),
-  );
-}
 
 function backupSection() {
   const fileInput = el('input', {
@@ -129,11 +121,12 @@ export const settingsView = {
     container.replaceChildren(
       el('header', { class: 'view-header' },
         el('h1', {}, 'Pengaturan'),
-        el('p', { class: 'subtitle' }, 'Cadangan data dan pengaturan aplikasi.'),
+        el('p', { class: 'subtitle' }, 'Cadangan data, fitur AI, dan pengaturan aplikasi.'),
       ),
       restoredNotice(),
       backupSection(),
       await automaticSection(),
+      aiSection(),
     );
     if (container.querySelector('.notice')) toast('Data berhasil dipulihkan');
   },

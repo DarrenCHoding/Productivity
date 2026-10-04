@@ -1,0 +1,5 @@
+# Aplikasi inti TIDAK butuh paket apa pun.
+#
+# Paket di bawah ini hanya untuk fitur AI (opsional), dan butuh Python 3.10+.
+# Pasang dengan:  python3 -m pip install -r requirements.txt
+anthropic>=1.11,<2

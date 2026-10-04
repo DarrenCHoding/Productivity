@@ -19,12 +19,17 @@ _routes = []
 
 
 class ApiError(Exception):
-    """Lempar error ini untuk mengirim pesan kesalahan ke tampilan."""
+    """Lempar error ini untuk mengirim pesan kesalahan ke tampilan.
 
-    def __init__(self, status, message):
+    code (opsional): kata kunci jenis kesalahan, supaya tampilan bisa memberi
+    petunjuk yang tepat (misalnya "no_key" -> arahkan ke Pengaturan).
+    """
+
+    def __init__(self, status, message, code=None):
         super().__init__(message)
         self.status = status
         self.message = message
+        self.code = code
 
 
 class Request:

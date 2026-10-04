@@ -5,7 +5,13 @@ data/*
 # File sementara Python
 __pycache__/
 *.pyc
+.venv/
 
 # File sistem
 .DS_Store
 Thumbs.db
+
+# Rahasia (API key). JANGAN PERNAH di-commit. Contohnya ada di .env.example.
+.env
+.env.*
+!.env.example

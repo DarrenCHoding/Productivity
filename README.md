@@ -18,8 +18,12 @@ Aplikasi productivity pribadi berbasis web, untuk dipakai sendiri di komputer An
 - **Ekspor & cadangan:** unduh seluruh data ke satu file, pulihkan dari file itu, dan cadangan otomatis setiap hari (7 hari terakhir disimpan).
 - *Belum dibuat:* pilihan tema & shortcut keyboard, kalender, statistik mingguan, pengingat, akses dari perangkat lain dengan PIN & PWA.
 
-**Tahap 4** (sedang dikerjakan, satu fitur per langkah)
+**Tahap 4**
 - **Tes otomatis** untuk fungsi-fungsi penting, termasuk mesin timer di browser. Lihat bagian [Tes otomatis](#tes-otomatis).
+- *Belum dibuat:* proyek & subtugas, input cepat, rencana harian, tinjauan mingguan, kalender eksternal, mode meja.
+
+**Tahap 5: fitur AI** (sedang dikerjakan, satu fitur per langkah)
+- **Fondasi AI** (opsional): pengaturan fitur AI, pilihan model, batas pemakaian bulanan, dan perkiraan biaya. Lihat bagian [9. Fitur AI](#9-fitur-ai-opsional).
 
 ---
 
@@ -159,6 +163,105 @@ Secara bawaan, aplikasi hanya bisa dibuka dari komputer yang menjalankannya. Unt
 
 ---
 
+## 9. Fitur AI (opsional)
+
+Aplikasi bisa memakai **Claude** dari Anthropic untuk fitur-fitur pintar. Fitur ini **opsional dan berbayar** (bayar sesuai pemakaian). Tanpa AI, semua fitur lain tetap bekerja penuh. Kalau API key kosong, paket belum terpasang, internet mati, atau batas bulanan tercapai, hanya fitur AI yang menampilkan pesan; aplikasi tetap berjalan.
+
+> **Penting:** API key ibarat kata sandi yang bisa memakai saldo Anda. Jangan pernah menempelkannya ke chat, email, atau GitHub. Simpan **hanya** di file `.env` seperti langkah di bawah.
+
+### Langkah 1: buat API key
+
+1. Buka **https://platform.claude.com**, lalu daftar atau masuk. (Langganan claude.ai **terpisah** dari API; API dibayar sendiri sesuai pemakaian.)
+2. Buka menu **Billing**, lalu isi kredit. Untuk mulai, $5 sudah cukup untuk pemakaian pribadi berminggu-minggu.
+3. *(Disarankan)* Di menu **Limits**, atur batas belanja bulanan sebagai pengaman kedua, selain batas di aplikasi ini.
+4. Buka menu **API keys**, lalu tekan **Create key**. Beri nama, misalnya `Productivity di laptop`.
+5. **Salin** key yang muncul (diawali `sk-ant-`). Key hanya ditampilkan **sekali**; kalau terlewat, buat key baru saja.
+
+### Langkah 2: taruh API key di file `.env`
+
+1. Di folder aplikasi, salin file contoh menjadi `.env`:
+   - Mac / Linux / Raspberry Pi: `cp .env.example .env`
+   - Windows (Command Prompt): `copy .env.example .env`
+2. Buka file `.env` dengan editor teks biasa (Notepad di Windows; di Mac pakai TextEdit lalu pilih Format → Make Plain Text).
+3. Tempelkan key **langsung setelah** tanda `=`, tanpa spasi dan tanpa tanda kutip:
+   ```
+   ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxx...
+   ```
+4. Simpan file.
+5. *(Cek)* Jalankan `git status`. File `.env` **tidak boleh** muncul di daftar itu. File ini sudah diatur supaya diabaikan Git, jadi tidak akan pernah ter-upload ke GitHub.
+
+**Kalau key sampai bocor** (misalnya tidak sengaja dibagikan): buka platform.claude.com → **API keys**, hapus key itu, buat key baru, lalu ganti isi `.env`.
+
+### Langkah 3: pasang paket `anthropic` (sekali saja)
+
+Fitur AI butuh **Python 3.10 atau lebih baru** dan satu paket resmi dari Anthropic:
+
+```
+python3 -m pip install -r requirements.txt
+```
+
+(Windows: `python -m pip install -r requirements.txt`.)
+
+*Di Raspberry Pi OS versi baru*, perintah di atas bisa ditolak dengan pesan `externally-managed-environment`. Kalau begitu, pakai lingkungan Python tersendiri:
+
+```
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python server.py          (jalankan aplikasi dengan perintah ini)
+```
+
+### Langkah 4: jalankan ulang & nyalakan
+
+1. Hentikan aplikasi (Ctrl+C), lalu jalankan lagi. File `.env` hanya dibaca saat aplikasi dinyalakan.
+2. Buka **Pengaturan** → bagian **Fitur AI**. Status harus berbunyi **"Siap dipakai"**. Kalau belum, pesannya menjelaskan apa yang kurang.
+3. Nyalakan **Nyalakan fitur AI**, lalu tekan **Uji koneksi**. Ini mengirim satu permintaan kecil (kurang dari $0,01). Kalau berhasil, muncul kotak bertanda **Jawaban AI**.
+
+### Model yang dipakai dan perkiraan biaya
+
+Aplikasi memakai dua model, dan keduanya bisa diganti di Pengaturan:
+
+| Pekerjaan | Model bawaan | Alasan | Harga per 1 juta token (masukan / keluaran) |
+|---|---|---|---|
+| **Tugas sederhana**, misalnya menafsirkan input cepat | Claude **Haiku 4.5** | Model tercepat dan termurah; cukup untuk mengenali tanggal, prioritas, kategori | $1 / $5 |
+| **Perencanaan & asisten** | Claude **Opus 5.5** | Model yang dianjurkan Anthropic untuk pekerjaan yang butuh penalaran | $4 / $20 |
+| *(pilihan lain)* | Claude **Sonnet 5.5** | Setengah harga Opus, masih cerdas; pilih ini kalau ingin lebih hemat | $2 / $10 |
+
+"Token" kira-kira sepotong kata. 1 juta token setara ratusan halaman teks. Perkiraan biaya untuk fitur-fitur AI yang direncanakan:
+
+| Pemakaian | Perkiraan per kali |
+|---|---|
+| Menafsirkan satu kalimat input cepat (Haiku 4.5) | ± $0,002 |
+| Memecah satu tugas menjadi subtugas (Opus 5.5) | ± $0,04 |
+| Menyusun rencana hari ini (Opus 5.5) | ± $0,08 |
+| Satu pertanyaan ke asisten (Opus 5.5) | ± $0,05 |
+| Ringkasan tinjauan mingguan (Opus 5.5) | ± $0,08 |
+
+Untuk **pemakaian pribadi sehari-hari**, misalnya 10 input cepat, 1 rencana harian, dan beberapa pertanyaan ke asisten per hari, perkiraannya **$5–12 per bulan** dengan Opus 5.5, atau **$3–6 per bulan** dengan Sonnet 5.5. Pemakaian ringan (input cepat dan rencana harian saja) sekitar **$3 per bulan**. Batas bawaan di aplikasi **$5 per bulan**; ubah sesuai kebutuhan. Untuk gambaran dalam rupiah, kalikan dengan kurs dolar saat ini.
+
+Catatan:
+- Angka di halaman Pengaturan adalah **perkiraan** dari jumlah token. Tagihan resmi ada di platform.claude.com (menu **Usage**).
+- Saat batas bulanan tercapai, fitur AI berhenti sampai awal bulan berikutnya. Permintaan yang sedang berjalan tetap diselesaikan, jadi pemakaian bisa sedikit melewati batas.
+- Untuk Sonnet 5.5 dan Opus 5.5, fitur **cadangan otomatis** Anthropic (*fallbacks*) aktif. Kalau model menolak sebuah permintaan karena filter keamanannya, Anthropic otomatis meneruskannya ke model lain yang sesuai. Biayanya ikut dihitung.
+- Claude Haiku 4.5 masih aktif, tapi model lama suatu saat dipensiunkan (Anthropic memberi tahu minimal 60 hari sebelumnya). Kalau itu terjadi, aplikasi menampilkan "Model … tidak tersedia"; cukup pilih Sonnet 5.5 di Pengaturan.
+
+### Privasi & keamanan
+
+- Semua permintaan ke Claude dikirim **dari server** (komputer Anda), tidak pernah langsung dari browser. API key tidak pernah dikirim ke browser.
+- Yang dikirim ke Anthropic hanya data yang dibutuhkan untuk permintaan itu, bukan seluruh database.
+- Yang dicatat aplikasi hanya jumlah token dan perkiraan biaya per bulan, bukan isi pertanyaan atau jawaban.
+- Setiap hasil AI ditandai **"Usulan AI"** dan tidak mengubah data apa pun tanpa persetujuan Anda.
+
+### Masalah umum fitur AI
+
+| Pesan | Penyebab & solusi |
+|---|---|
+| "API key belum diisi" | File `.env` belum ada, key belum ditempel, atau aplikasi belum dijalankan ulang setelah mengisi `.env`. |
+| "Paket 'anthropic' belum terpasang" | Lakukan Langkah 3, lalu jalankan ulang aplikasi. |
+| "API key ditolak" | Key salah ketik, terpotong, atau sudah dihapus. Buat key baru dan ganti isi `.env`. |
+| "Kredit akun Anthropic Anda habis" | Isi ulang di platform.claude.com → **Billing**. |
+| "Tidak bisa terhubung ke layanan AI" | Internet mati. Fitur lain tetap bisa dipakai. |
+| "Batas pemakaian AI bulan ini sudah tercapai" | Tunggu bulan depan, atau naikkan batas di Pengaturan. |
+
 ## Untuk pengembangan
 
 ### Teknologi
@@ -166,6 +269,7 @@ Secara bawaan, aplikasi hanya bisa dibuka dari komputer yang menjalankannya. Unt
 - **Python** (pustaka bawaan saja): server web (`http.server`) dan database (`sqlite3`).
 - **SQLite**: database dalam satu file.
 - **HTML, CSS, JavaScript biasa**: tanpa *framework* dan tanpa langkah *build*.
+- **Opsional, khusus fitur AI:** paket resmi `anthropic` (lihat `requirements.txt`). Aplikasi tetap berjalan tanpa paket ini.
 
 ### Struktur folder
 
@@ -181,7 +285,11 @@ app/
     focus.py              API riwayat sesi fokus
     settings.py           API pengaturan (misalnya durasi timer)
     backup.py             API ekspor, pemulihan, dan daftar cadangan
+    ai.py                 API status fitur AI & uji koneksi
   backup.py               logika cadangan & pemulihan, termasuk cadangan harian
+  ai.py                   satu-satunya pintu ke Claude API (pemeriksaan, batas bulanan, pesan error, biaya)
+  ai_models.py            daftar model Claude & harganya
+  env.py                  membaca file .env (API key)
     system.py             /api/health
 static/
   index.html              kerangka halaman
@@ -222,6 +330,8 @@ data/                     file database (tidak masuk Git)
 | POST | `/api/backup/restore` | Pulihkan dari file yang diunggah (`Content-Type: application/octet-stream`) |
 | GET | `/api/backup/automatic` | Daftar cadangan di `data/backups/` |
 | POST | `/api/backup/automatic/restore` | Pulihkan dari salah satu cadangan itu: `name` |
+| GET | `/api/ai/status` | Keadaan fitur AI, model, batas & pemakaian bulan ini (tanpa API key) |
+| POST | `/api/ai/test` | Uji koneksi ke Claude: `tier` (`simple` / `smart`) |
 
 ### Tes otomatis
 
@@ -253,7 +363,11 @@ Tes memakai **database sementara**, jadi data asli Anda tidak tersentuh, dan apl
 | Database | `tests/test_db.py` | pembaruan struktur tanpa kehilangan data, cadangan sebelum pembaruan |
 | Data permanen | `tests/test_persistence.py` | data tetap ada setelah server dimatikan paksa lalu dinyalakan lagi |
 | Server | `tests/test_system.py` | jenis file benar, file di luar folder `static/` tidak bisa dibuka, batas ukuran data |
+| Fitur AI | `tests/test_ai.py` | AI mati / key kosong / batas tercapai tidak memanggil AI, perhitungan biaya, API key tidak bocor ke browser, `.env` diabaikan Git |
+| Fitur AI + SDK asli | `tests/test_ai_sdk.py` | bentuk permintaan SDK `anthropic` yang sebenarnya dan terjemahan error (key ditolak, model tidak ada, server sibuk, internet mati); dilewati bila paket belum terpasang |
 
 **Tes JavaScript (opsional):** tes bagian browser (timer & tanggal) butuh [Node.js](https://nodejs.org/) versi 22 atau lebih baru. Node.js **tidak** dibutuhkan untuk menjalankan aplikasi. Kalau belum terpasang, tes ini dilewati dan tes lainnya tetap berjalan. Tes ini dijalankan dua kali dengan zona waktu berbeda, supaya perhitungan tanggal terbukti benar di mana pun. Untuk menjalankannya sendiri: `node --test "tests/js/*.test.mjs"`.
+
+**Tes tidak pernah memanggil Claude API sungguhan.** `tests/__init__.py` mengosongkan API key dan mengarahkan alamat API ke alamat lokal yang tidak ada. Tes AI memakai "Claude tiruan" atau server Anthropic tiruan di komputer sendiri, jadi tidak ada biaya.
 
 **Aturan saat menambah fitur:** setiap fitur baru disertai tes baru, dan `python3 -m unittest` harus `OK` sebelum perubahan di-commit.

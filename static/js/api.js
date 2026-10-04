@@ -80,6 +80,10 @@ export const api = {
   restoreBackup: (file) => upload('/api/backup/restore', file),
   listBackups: () => request('GET', '/api/backup/automatic'),
   restoreAutomaticBackup: (name) => request('POST', '/api/backup/automatic/restore', { name }),
+
+  // Fitur AI (semua panggilan ke Claude dilakukan oleh server)
+  aiStatus: () => request('GET', '/api/ai/status'),
+  aiTest: (tier) => request('POST', '/api/ai/test', { tier }),
 };
 
 export { request, query };

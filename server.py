@@ -17,6 +17,11 @@ import webbrowser
 if sys.version_info < (3, 8):
     sys.exit("Aplikasi ini butuh Python 3.8 atau lebih baru.")
 
+from app.env import load_env  # noqa: E402
+
+# Baca file .env (API key, dll.) sebelum modul lain dimuat.
+load_env()
+
 from app.backup import start_daily_backups  # noqa: E402
 from app.db import get_backup_dir, get_db_path, init_db  # noqa: E402
 from app.server import make_server  # noqa: E402
